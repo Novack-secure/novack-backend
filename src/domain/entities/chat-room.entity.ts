@@ -8,17 +8,17 @@ import {
   JoinColumn,
   OneToMany,
   ManyToMany,
-  JoinTable
+  JoinTable,
 } from 'typeorm';
 import { Supplier } from './supplier.entity';
 import { Employee } from './employee.entity';
 import { Visitor } from './visitor.entity';
 
 export enum ChatRoomType {
-  SUPPLIER_GROUP = 'supplier_group',  // Grupo general del proveedor
-  EMPLOYEE_TO_EMPLOYEE = 'employee_to_employee',  // Chat privado entre empleados
-  EMPLOYEE_TO_VISITOR = 'employee_to_visitor',  // Chat entre empleado y visitante
-  PRIVATE = 'private'  // Chat privado (general)
+  SUPPLIER_GROUP = 'supplier_group', // Grupo general del proveedor
+  EMPLOYEE_TO_EMPLOYEE = 'employee_to_employee', // Chat privado entre empleados
+  EMPLOYEE_TO_VISITOR = 'employee_to_visitor', // Chat entre empleado y visitante
+  PRIVATE = 'private', // Chat privado (general)
 }
 
 @Entity({ name: 'chat_rooms' })
@@ -32,7 +32,7 @@ export class ChatRoom {
   @Column({
     type: 'enum',
     enum: ChatRoomType,
-    default: ChatRoomType.EMPLOYEE_TO_EMPLOYEE
+    default: ChatRoomType.EMPLOYEE_TO_EMPLOYEE,
   })
   type: ChatRoomType;
 
@@ -47,7 +47,7 @@ export class ChatRoom {
   @JoinTable({
     name: 'chat_room_employees',
     joinColumn: { name: 'chat_room_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'employee_id', referencedColumnName: 'id' }
+    inverseJoinColumn: { name: 'employee_id', referencedColumnName: 'id' },
   })
   employees: Employee[];
 
@@ -55,7 +55,7 @@ export class ChatRoom {
   @JoinTable({
     name: 'chat_room_visitors',
     joinColumn: { name: 'chat_room_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'visitor_id', referencedColumnName: 'id' }
+    inverseJoinColumn: { name: 'visitor_id', referencedColumnName: 'id' },
   })
   visitors: Visitor[];
 
@@ -70,4 +70,4 @@ export class ChatRoom {
 
   @UpdateDateColumn()
   updated_at: Date;
-} 
+}

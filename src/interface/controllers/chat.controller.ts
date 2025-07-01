@@ -7,7 +7,7 @@ import {
   UseGuards,
   Request,
   NotFoundException,
-  BadRequestException
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthGuard } from 'src/application/guards/auth.guard';
 import { ChatService } from 'src/application/services/chat.service';
@@ -37,7 +37,10 @@ export class ChatController {
   }
 
   @Post('messages')
-  async createMessage(@Body() createMessageDto: CreateMessageDto, @Request() req) {
+  async createMessage(
+    @Body() createMessageDto: CreateMessageDto,
+    @Request() req,
+  ) {
     return this.chatService.addMessage(createMessageDto, req.user);
   }
 
@@ -48,21 +51,24 @@ export class ChatController {
 
   @Post('rooms/private')
   async createPrivateRoom(
-    @Body() body: { targetUserId: string, targetUserType: 'employee' | 'visitor' },
-    @Request() req
+    @Body()
+    body: { targetUserId: string; targetUserType: 'employee' | 'visitor' },
+    @Request() req,
   ) {
     const { targetUserId, targetUserType } = body;
     const { id, userType } = req.user;
-    
+
     if (!targetUserId || !targetUserType) {
-      throw new BadRequestException('Se requiere el ID y tipo del usuario destino');
+      throw new BadRequestException(
+        'Se requiere el ID y tipo del usuario destino',
+      );
     }
 
     return this.chatService.getOrCreatePrivateRoom(
       id,
       userType || 'employee',
       targetUserId,
-      targetUserType
+      targetUserType,
     );
   }
-} 
+}

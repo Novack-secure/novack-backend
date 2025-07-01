@@ -11,12 +11,15 @@ export interface LogContext {
   [key: string]: any;
 }
 
+// Extender la definición de niveles de log para incluir 'none'
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'verbose' | 'none';
+
 @Injectable({ scope: Scope.TRANSIENT })
 export class StructuredLoggerService implements LoggerService {
   private static contextStorage = new AsyncLocalStorage<LogContext>();
   private context?: string;
-  private static defaultLogLevel: 'debug' | 'info' | 'warn' | 'error' | 'verbose' = 'info';
-  private static contextLogLevels: Record<string, 'debug' | 'info' | 'warn' | 'error' | 'verbose'> = {};
+  private static defaultLogLevel: LogLevel = 'info';
+  private static contextLogLevels: Record<string, LogLevel> = {};
   private static logTransport: LogTransportService;
   private static initialized = false;
 
@@ -25,14 +28,13 @@ export class StructuredLoggerService implements LoggerService {
     logTransport?: LogTransportService,
   ) {
     if (!StructuredLoggerService.initialized && configService) {
-      StructuredLoggerService.defaultLogLevel = configService.get<'debug' | 'info' | 'warn' | 'error' | 'verbose'>(
+      StructuredLoggerService.defaultLogLevel = configService.get<LogLevel>(
         'logging.level',
         'info',
       );
-      StructuredLoggerService.contextLogLevels = configService.get<Record<string, 'debug' | 'info' | 'warn' | 'error' | 'verbose'>>(
-        'logging.contextLogLevels',
-        {},
-      );
+      StructuredLoggerService.contextLogLevels = configService.get<
+        Record<string, LogLevel>
+      >('logging.contextLogLevels', {});
       StructuredLoggerService.initialized = true;
     }
     // Allow logTransport to be set by any instance if not already set
@@ -63,16 +65,37 @@ export class StructuredLoggerService implements LoggerService {
   }
 
   // Helper to determine if a message should be logged based on level and context
-  private shouldLog(level: 'debug' | 'info' | 'warn' | 'error' | 'verbose', context?: string): boolean {
+  private shouldLog(
+    level: 'debug' | 'info' | 'warn' | 'error' | 'verbose',
+    context?: string,
+  ): boolean {
     const contextName = context || this.context || 'Global';
-    const contextLevel = StructuredLoggerService.contextLogLevels[contextName] || StructuredLoggerService.defaultLogLevel;
+    const contextLevel =
+      StructuredLoggerService.contextLogLevels[contextName] ||
+      StructuredLoggerService.defaultLogLevel;
+
+    // Si el nivel configurado es 'none', no se registra ningún mensaje
+    if (
+      contextLevel === 'none' ||
+      StructuredLoggerService.defaultLogLevel === 'none'
+    ) {
+      return false;
+    }
 
     const levelPriority = { verbose: 0, debug: 1, info: 2, warn: 3, error: 4 };
 
-    return levelPriority[level] >= levelPriority[contextLevel];
+    return (
+      levelPriority[level] >=
+      levelPriority[contextLevel as Exclude<LogLevel, 'none'>]
+    );
   }
 
-  private formatLog(level: string, message: any, context?: string, ...meta: any[]): any {
+  private formatLog(
+    level: string,
+    message: any,
+    context?: string,
+    ...meta: any[]
+  ): any {
     const currentContext = StructuredLoggerService.getCurrentContext();
     const timestamp = new Date().toISOString();
     const contextName = context || this.context || 'Global';
@@ -82,7 +105,11 @@ export class StructuredLoggerService implements LoggerService {
 
     if (level === 'error') {
       for (const item of meta) {
-        if (item && typeof item === 'object' && item.hasOwnProperty('stack_trace')) {
+        if (
+          item &&
+          typeof item === 'object' &&
+          item.hasOwnProperty('stack_trace')
+        ) {
           stackTrace = item.stack_trace;
         } else {
           remainingMeta.push(item);
@@ -147,7 +174,12 @@ export class StructuredLoggerService implements LoggerService {
     if (this.shouldLog('error', context)) {
       // Pass trace explicitly in the meta array for formatLog to identify
       const errorMeta = trace ? [...meta, { stack_trace: trace }] : [...meta];
-      const formattedLog = this.formatLog('error', message, context, ...errorMeta);
+      const formattedLog = this.formatLog(
+        'error',
+        message,
+        context,
+        ...errorMeta,
+      );
       this.sendLog(formattedLog);
     }
   }

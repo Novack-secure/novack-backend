@@ -13,22 +13,28 @@ export class SessionSecurityMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     // Prevenir clickjacking
     res.setHeader('X-Frame-Options', 'DENY');
-    
+
     // Habilitar protección XSS integrada en navegadores modernos
     res.setHeader('X-XSS-Protection', '1; mode=block');
-    
+
     // Prevenir MIME sniffing
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    
+
     // Strict-Transport-Security
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-    
+    res.setHeader(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains; preload',
+    );
+
     // Referrer Policy
     res.setHeader('Referrer-Policy', 'no-referrer-when-downgrade');
-    
+
     // Feature-Policy/Permissions-Policy
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    
+    res.setHeader(
+      'Permissions-Policy',
+      'camera=(), microphone=(), geolocation=()',
+    );
+
     next();
   }
-} 
+}

@@ -25,9 +25,7 @@ describe('CustomThrottlerGuard', () => {
           },
         ]),
       ],
-      providers: [
-        TestCustomThrottlerGuard,
-      ],
+      providers: [TestCustomThrottlerGuard],
     }).compile();
 
     guard = module.get<TestCustomThrottlerGuard>(TestCustomThrottlerGuard);
@@ -78,4 +76,4 @@ describe('CustomThrottlerGuard', () => {
       expect(guard.canActivate).toBeDefined();
     });
   });
-}); 
+});

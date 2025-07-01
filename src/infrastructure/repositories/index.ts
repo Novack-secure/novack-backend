@@ -1,6 +1,6 @@
 /**
  * Índice de repositorios
- * 
+ *
  * Este archivo exporta todas las implementaciones de repositorios de infraestructura
  * para facilitar su importación y registro en los módulos.
  */
@@ -12,7 +12,6 @@ export * from './appointment.repository'; // Added export
 export * from './supplier.repository'; // Exportando el repositorio de proveedores
 // Otros repositorios se añadirán a medida que se implementen
 // export * from './card.repository'; // Example for when it's created
-
 
 /**
  * Array con todos los proveedores de repositorios para inyección de dependencias

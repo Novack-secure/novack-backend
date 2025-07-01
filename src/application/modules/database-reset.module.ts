@@ -5,4 +5,4 @@ import { DatabaseResetController } from '../../interface/controllers/database-re
   controllers: [DatabaseResetController],
   providers: [],
 })
-export class DatabaseResetModule {} 
+export class DatabaseResetModule {}

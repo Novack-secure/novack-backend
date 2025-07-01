@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString, IsUUID, IsOptional, IsEnum, IsArray } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  IsOptional,
+  IsEnum,
+  IsArray,
+} from 'class-validator';
 import { ChatRoomType } from 'src/domain/entities/chat-room.entity';
 
 export class CreateRoomDto {
@@ -23,4 +30,4 @@ export class CreateRoomDto {
   @IsArray()
   @IsUUID('4', { each: true })
   visitorIds?: string[];
-} 
+}

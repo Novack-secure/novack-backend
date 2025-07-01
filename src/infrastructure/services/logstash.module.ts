@@ -10,4 +10,4 @@ import { LogstashController } from '../../interface/controllers/logstash.control
   providers: [LogstashService],
   exports: [LogstashService],
 })
-export class LogstashModule {} 
+export class LogstashModule {}

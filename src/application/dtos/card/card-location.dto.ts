@@ -6,7 +6,7 @@ export class CardLocationDto {
     description: 'Latitud de la ubicación',
     example: 40.7128,
     minimum: -90,
-    maximum: 90
+    maximum: 90,
   })
   @IsNumber()
   @Min(-90)
@@ -15,9 +15,9 @@ export class CardLocationDto {
 
   @ApiProperty({
     description: 'Longitud de la ubicación',
-    example: -74.0060,
+    example: -74.006,
     minimum: -180,
-    maximum: 180
+    maximum: 180,
   })
   @IsNumber()
   @Min(-180)
@@ -27,9 +27,9 @@ export class CardLocationDto {
   @ApiProperty({
     description: 'Precisión de la ubicación en metros',
     example: 10.5,
-    required: false
+    required: false,
   })
   @IsNumber()
   @IsOptional()
   accuracy?: number;
-} 
+}

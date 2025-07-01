@@ -34,7 +34,8 @@ export class TwoFactorAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Generar configuración 2FA',
-    description: 'Genera un nuevo secreto 2FA usando TOTP (por defecto) o Email',
+    description:
+      'Genera un nuevo secreto 2FA usando TOTP (por defecto) o Email',
   })
   @ApiQuery({
     name: 'method',
@@ -48,14 +49,14 @@ export class TwoFactorAuthController {
   })
   async generate(@Req() req, @Query('method') method?: 'totp' | 'email') {
     const employeeId = req.user.id;
-    
+
     if (method && !['totp', 'email'].includes(method)) {
       throw new BadRequestException('Método no válido. Use "totp" o "email"');
     }
-    
+
     return this.twoFactorAuthService.generateTwoFactorSecret(
       employeeId,
-      method as 'totp' | 'email'
+      method as 'totp' | 'email',
     );
   }
 
@@ -63,7 +64,8 @@ export class TwoFactorAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Activar 2FA',
-    description: 'Activa 2FA para el empleado actual usando el código de verificación',
+    description:
+      'Activa 2FA para el empleado actual usando el código de verificación',
   })
   @ApiResponse({
     status: 200,
@@ -87,10 +89,10 @@ export class TwoFactorAuthController {
   async verify(@Req() req, @Body() verify2FADto: Verify2FADto) {
     const employeeId = req.user.id;
     const result = await this.twoFactorAuthService.verify2FA(
-      employeeId, 
-      verify2FADto.code
+      employeeId,
+      verify2FADto.code,
     );
-    
+
     return { isValid: result };
   }
 
@@ -108,7 +110,7 @@ export class TwoFactorAuthController {
     const employeeId = req.user.id;
     return this.twoFactorAuthService.disable2FA(employeeId, disable2FADto.code);
   }
-  
+
   @Post('backup-code')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -121,10 +123,11 @@ export class TwoFactorAuthController {
   })
   async generateBackupCode(@Req() req) {
     const employeeId = req.user.id;
-    const backupCode = await this.twoFactorAuthService.generateBackupCode(employeeId);
+    const backupCode =
+      await this.twoFactorAuthService.generateBackupCode(employeeId);
     return { backupCode };
   }
-  
+
   @Post('verify-backup')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -139,9 +142,9 @@ export class TwoFactorAuthController {
     const employeeId = req.user.id;
     const isValid = await this.twoFactorAuthService.verifyBackupCode(
       employeeId,
-      backupCodeDto.code
+      backupCodeDto.code,
     );
-    
+
     return { isValid };
   }
 
@@ -149,46 +152,98 @@ export class TwoFactorAuthController {
 
   @Post('sms/initiate-verification')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Iniciar verificación de teléfono por SMS para 2FA' })
-  @ApiResponse({ status: 204, description: 'SMS OTP enviado exitosamente al número de teléfono proporcionado.' })
-  @ApiResponse({ status: 400, description: 'Solicitud incorrecta (ej. número de teléfono inválido, empleado no encontrado)' })
-  @ApiResponse({ status: 500, description: 'Error interno al enviar SMS (ej. fallo del proveedor de SMS)' })
-  async initiateSmsVerification(@Req() req, @Body() dto: InitiateSmsVerificationDto): Promise<void> {
+  @ApiOperation({
+    summary: 'Iniciar verificación de teléfono por SMS para 2FA',
+  })
+  @ApiResponse({
+    status: 204,
+    description:
+      'SMS OTP enviado exitosamente al número de teléfono proporcionado.',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Solicitud incorrecta (ej. número de teléfono inválido, empleado no encontrado)',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno al enviar SMS (ej. fallo del proveedor de SMS)',
+  })
+  async initiateSmsVerification(
+    @Req() req,
+    @Body() dto: InitiateSmsVerificationDto,
+  ): Promise<void> {
     const employeeId = req.user.id; // Assumes AuthGuard adds user to request
-    await this.twoFactorAuthService.initiateSmsVerification(employeeId, dto.phone_number);
+    await this.twoFactorAuthService.initiateSmsVerification(
+      employeeId,
+      dto.phone_number,
+    );
   }
 
   @Post('sms/verify-phone')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verificar OTP por SMS para confirmar número de teléfono' })
-  @ApiResponse({ status: 200, description: 'Número de teléfono verificado exitosamente.', schema: { properties: { verified: { type: 'boolean' } } } })
-  @ApiResponse({ status: 400, description: 'Solicitud incorrecta (ej. OTP inválido, OTP expirado)' })
-  async verifySmsOtp(@Req() req, @Body() dto: VerifySmsOtpDto): Promise<{ verified: boolean }> {
+  @ApiOperation({
+    summary: 'Verificar OTP por SMS para confirmar número de teléfono',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Número de teléfono verificado exitosamente.',
+    schema: { properties: { verified: { type: 'boolean' } } },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Solicitud incorrecta (ej. OTP inválido, OTP expirado)',
+  })
+  async verifySmsOtp(
+    @Req() req,
+    @Body() dto: VerifySmsOtpDto,
+  ): Promise<{ verified: boolean }> {
     const employeeId = req.user.id;
-    const result = await this.twoFactorAuthService.verifySmsOtpForPhoneNumber(employeeId, dto.otp);
+    const result = await this.twoFactorAuthService.verifySmsOtpForPhoneNumber(
+      employeeId,
+      dto.otp,
+    );
     return { verified: result };
   }
 
   @Post('sms/enable')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Habilitar 2FA basado en SMS para el usuario autenticado' })
-  @ApiResponse({ status: 200, description: '2FA por SMS habilitado exitosamente.', schema: { properties: { sms2faEnabled: { type: 'boolean' } } } })
-  @ApiResponse({ status: 400, description: 'Solicitud incorrecta (ej. teléfono no verificado)' })
+  @ApiOperation({
+    summary: 'Habilitar 2FA basado en SMS para el usuario autenticado',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '2FA por SMS habilitado exitosamente.',
+    schema: { properties: { sms2faEnabled: { type: 'boolean' } } },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Solicitud incorrecta (ej. teléfono no verificado)',
+  })
   async enableSmsTwoFactor(@Req() req): Promise<{ sms2faEnabled: boolean }> {
     const employeeId = req.user.id;
-    const result = await this.twoFactorAuthService.enableSmsTwoFactor(employeeId);
+    const result =
+      await this.twoFactorAuthService.enableSmsTwoFactor(employeeId);
     return { sms2faEnabled: result };
   }
 
   @Post('sms/disable')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Deshabilitar 2FA basado en SMS para el usuario autenticado' })
-  @ApiResponse({ status: 200, description: '2FA por SMS deshabilitado exitosamente.', schema: { properties: { sms2faEnabled: { type: 'boolean' } } } })
-  @ApiResponse({ status: 400, description: 'Solicitud incorrecta (ej. SMS 2FA no está activo)' })
+  @ApiOperation({
+    summary: 'Deshabilitar 2FA basado en SMS para el usuario autenticado',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '2FA por SMS deshabilitado exitosamente.',
+    schema: { properties: { sms2faEnabled: { type: 'boolean' } } },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Solicitud incorrecta (ej. SMS 2FA no está activo)',
+  })
   async disableSmsTwoFactor(@Req() req): Promise<{ sms2faEnabled: boolean }> {
     const employeeId = req.user.id;
     await this.twoFactorAuthService.disableSmsTwoFactor(employeeId);
     return { sms2faEnabled: false }; // Reflecting the new state
   }
 }
-

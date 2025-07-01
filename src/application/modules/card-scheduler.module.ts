@@ -26,4 +26,4 @@ import { TokenModule } from './token.module';
   providers: [CardSchedulerService],
   exports: [CardSchedulerService],
 })
-export class CardSchedulerModule {} 
+export class CardSchedulerModule {}

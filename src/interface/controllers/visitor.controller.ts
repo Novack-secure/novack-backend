@@ -118,7 +118,10 @@ export class VisitorController {
     status: 404,
     description: 'Proveedor no encontrado en el sistema.',
   })
-  findBySupplier(@Query('supplier_id', new ParseUUIDPipe({ version: '4' })) supplier_id: string) {
+  findBySupplier(
+    @Query('supplier_id', new ParseUUIDPipe({ version: '4' }))
+    supplier_id: string,
+  ) {
     return this.getVisitorsBySupplierUseCase.execute(supplier_id);
   }
 
@@ -176,7 +179,10 @@ export class VisitorController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateVisitorDto: UpdateVisitorDto,
   ) {
-    return this.updateVisitorAndAppointmentUseCase.execute(id, updateVisitorDto);
+    return this.updateVisitorAndAppointmentUseCase.execute(
+      id,
+      updateVisitorDto,
+    );
   }
 
   @Delete(':id')
@@ -237,7 +243,9 @@ export class VisitorController {
   @Patch(':id/profile-image')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('profileImage')) // Keep FileInterceptor
-  @ApiOperation({ summary: 'Subir o actualizar imagen de perfil del visitante' })
+  @ApiOperation({
+    summary: 'Subir o actualizar imagen de perfil del visitante',
+  })
   @ApiParam({ name: 'id', description: 'ID UUID del visitante', type: String })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -249,8 +257,18 @@ export class VisitorController {
       },
     },
   })
-  @ApiResponse({ status: 200, description: 'Imagen de perfil actualizada.', schema: { properties: { message: {type: 'string'}, url: {type: 'string'} } } })
-  @ApiResponse({ status: 400, description: 'Archivo inválido, tipo no permitido o error de procesamiento.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Imagen de perfil actualizada.',
+    schema: {
+      properties: { message: { type: 'string' }, url: { type: 'string' } },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Archivo inválido, tipo no permitido o error de procesamiento.',
+  })
   @ApiResponse({ status: 404, description: 'Visitante no encontrado.' })
   async uploadProfileImage(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -261,11 +279,15 @@ export class VisitorController {
       throw new BadRequestException('No se proporcionó ningún archivo.');
     }
 
-    const bucketName = this.configService.get<string>('AWS_S3_VISITOR_BUCKET_NAME');
+    const bucketName = this.configService.get<string>(
+      'AWS_S3_VISITOR_BUCKET_NAME',
+    );
     if (!bucketName) {
       // En lugar de acceder al logger directamente, registramos el error con console.log
       console.error('AWS_S3_VISITOR_BUCKET_NAME not configured');
-      throw new InternalServerErrorException('Error de configuración del almacenamiento de archivos.');
+      throw new InternalServerErrorException(
+        'Error de configuración del almacenamiento de archivos.',
+      );
     }
 
     const destinationPath = `profile/`; // Define a clear path within the bucket
@@ -280,6 +302,9 @@ export class VisitorController {
     // Call the use case to update the visitor entity with the new URL
     await this.updateVisitorProfileImageUseCase.execute(id, imageUrl);
 
-    return { message: 'Imagen de perfil actualizada correctamente.', url: imageUrl };
+    return {
+      message: 'Imagen de perfil actualizada correctamente.',
+      url: imageUrl,
+    };
   }
 }

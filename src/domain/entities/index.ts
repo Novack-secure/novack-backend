@@ -9,8 +9,8 @@
 export * from './employee.entity';
 export * from './visitor.entity';
 export * from './supplier.entity';
-export * from './supplier-subscription.entity';
 export * from './card.entity';
+export * from './appointment.entity';
 
 // Entidades de comunicación y chat
 export * from './chat-room.entity';
@@ -18,6 +18,7 @@ export * from './chat-message.entity';
 
 // Entidades de seguridad y auditoría
 export * from './audit-log.entity';
-export * from './refresh-token.entity'; // Added export
-export * from './login-attempt.entity'; // Added export
-export * from './appointment.entity'; // Added export for Appointment
+export * from './refresh-token.entity';
+export * from './supplier-subscription.entity';
+export * from './login-attempt.entity';
+export * from './employee-credentials.entity';

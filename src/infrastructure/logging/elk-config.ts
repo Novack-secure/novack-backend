@@ -22,4 +22,3 @@ export const getElkConfig = (configService: ConfigService): ElkConfig => {
     environment: configService.get<string>('NODE_ENV', 'development'),
   };
 };
-

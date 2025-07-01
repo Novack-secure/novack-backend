@@ -75,7 +75,7 @@ export class LogstashService implements OnModuleInit, OnModuleDestroy {
   }
 
   private connect() {
-    if (this.isConnected || this.client) {
+    if (this.isConnected) {
       return;
     }
 
@@ -98,7 +98,9 @@ export class LogstashService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.client.on('close', () => {
-      this.logger.warn('Conexión con Logstash cerrada');
+      if (this.isConnected) {
+        this.logger.warn('Conexión con Logstash cerrada');
+      }
       this.handleDisconnect();
     });
   }

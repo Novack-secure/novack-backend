@@ -9,7 +9,8 @@ import { CardService } from '../card.service';
 import { EmailService } from '../email.service';
 import { StructuredLoggerService } from 'src/infrastructure/logging/structured-logger.service';
 
-describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
+describe('VisitorService', () => {
+  // Removed MOCK_LOGGER_PLACEHOLDER
   let service: VisitorService;
   let visitorRepository: Repository<Visitor>;
   let supplierRepository: Repository<Supplier>;
@@ -39,7 +40,7 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
     id: '1',
     card_number: 'CARD123',
     status: 'active',
-    type: 'visitor'
+    type: 'visitor',
   };
 
   const mockAppointment = {
@@ -49,7 +50,7 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
     scheduled_time: new Date(),
     check_in_time: new Date(),
     check_out_time: null,
-    complaints: { "invitado1": "ninguno" },
+    complaints: { invitado1: 'ninguno' },
     status: 'pendiente',
   };
 
@@ -77,7 +78,7 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
     appointment_description: 'Discussing new project details',
     check_in_time: new Date(),
     supplier_id: '1',
-    complaints: { "invitado1": "ninguno" }
+    complaints: { invitado1: 'ninguno' },
   };
 
   const mockUpdateVisitorDto: UpdateVisitorDto = {
@@ -89,7 +90,9 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
   beforeEach(async () => {
     const mockCardService = {
       findAvailableCards: jest.fn().mockResolvedValue([mockCard]),
-      assignToVisitor: jest.fn().mockResolvedValue({ ...mockCard, visitor: mockVisitor }),
+      assignToVisitor: jest
+        .fn()
+        .mockResolvedValue({ ...mockCard, visitor: mockVisitor }),
       unassignFromVisitor: jest.fn().mockResolvedValue(mockCard),
     };
 
@@ -147,15 +150,21 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
         {
           provide: StructuredLoggerService,
           useValue: mockLoggerInstance, // Use the defined mock instance
-        }
+        },
       ],
     }).compile();
 
     service = module.get<VisitorService>(VisitorService);
     logger = module.get<StructuredLoggerService>(StructuredLoggerService);
-    visitorRepository = module.get<Repository<Visitor>>(getRepositoryToken(Visitor));
-    supplierRepository = module.get<Repository<Supplier>>(getRepositoryToken(Supplier));
-    appointmentRepository = module.get<Repository<Appointment>>(getRepositoryToken(Appointment));
+    visitorRepository = module.get<Repository<Visitor>>(
+      getRepositoryToken(Visitor),
+    );
+    supplierRepository = module.get<Repository<Supplier>>(
+      getRepositoryToken(Supplier),
+    );
+    appointmentRepository = module.get<Repository<Appointment>>(
+      getRepositoryToken(Appointment),
+    );
     cardService = module.get<CardService>(CardService);
     emailService = module.get<EmailService>(EmailService);
   });
@@ -168,20 +177,37 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
 
   describe('create', () => {
     it('should create a new visitor successfully', async () => {
-      jest.spyOn(supplierRepository, 'findOne').mockResolvedValue(mockSupplier as any);
-      jest.spyOn(visitorRepository, 'create').mockReturnValue(mockVisitor as any);
-      jest.spyOn(visitorRepository, 'save').mockResolvedValue(mockVisitor as any);
-      jest.spyOn(appointmentRepository, 'create').mockReturnValue(mockAppointment as any);
-      jest.spyOn(appointmentRepository, 'save').mockResolvedValue(mockAppointment as any);
-      jest.spyOn(cardService, 'findAvailableCards').mockResolvedValue([mockCard] as any);
-      jest.spyOn(cardService, 'assignToVisitor').mockResolvedValue({ ...mockCard, visitor: mockVisitor } as any);
-      jest.spyOn(emailService, 'sendVisitorWelcomeEmail').mockResolvedValue(true as any);
-      
-      jest.spyOn(visitorRepository, 'findOne')
+      jest
+        .spyOn(supplierRepository, 'findOne')
+        .mockResolvedValue(mockSupplier as any);
+      jest
+        .spyOn(visitorRepository, 'create')
+        .mockReturnValue(mockVisitor as any);
+      jest
+        .spyOn(visitorRepository, 'save')
+        .mockResolvedValue(mockVisitor as any);
+      jest
+        .spyOn(appointmentRepository, 'create')
+        .mockReturnValue(mockAppointment as any);
+      jest
+        .spyOn(appointmentRepository, 'save')
+        .mockResolvedValue(mockAppointment as any);
+      jest
+        .spyOn(cardService, 'findAvailableCards')
+        .mockResolvedValue([mockCard] as any);
+      jest
+        .spyOn(cardService, 'assignToVisitor')
+        .mockResolvedValue({ ...mockCard, visitor: mockVisitor } as any);
+      jest
+        .spyOn(emailService, 'sendVisitorWelcomeEmail')
+        .mockResolvedValue(true as any);
+
+      jest
+        .spyOn(visitorRepository, 'findOne')
         .mockResolvedValueOnce(mockVisitor as any);
-      
+
       const result = await service.create(mockCreateVisitorDto);
-      
+
       expect(result).toEqual(mockVisitor);
       expect(supplierRepository.findOne).toHaveBeenCalledWith({
         where: { id: mockCreateVisitorDto.supplier_id },
@@ -192,18 +218,22 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
 
     it('should throw error if supplier does not exist', async () => {
       jest.spyOn(supplierRepository, 'findOne').mockResolvedValue(null);
-      
-      await expect(service.create(mockCreateVisitorDto)).rejects.toThrow(BadRequestException);
+
+      await expect(service.create(mockCreateVisitorDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
   describe('findAll', () => {
     it('should return an array of visitors', async () => {
       const mockVisitors = [mockVisitor];
-      jest.spyOn(visitorRepository, 'find').mockResolvedValue(mockVisitors as any);
-      
+      jest
+        .spyOn(visitorRepository, 'find')
+        .mockResolvedValue(mockVisitors as any);
+
       const result = await service.findAll();
-      
+
       expect(result).toEqual(mockVisitors);
       expect(visitorRepository.find).toHaveBeenCalledWith({
         relations: ['supplier', 'card', 'appointments'],
@@ -213,10 +243,12 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
 
   describe('findOne', () => {
     it('should return a single visitor by id', async () => {
-      jest.spyOn(visitorRepository, 'findOne').mockResolvedValue(mockVisitor as any);
-      
+      jest
+        .spyOn(visitorRepository, 'findOne')
+        .mockResolvedValue(mockVisitor as any);
+
       const result = await service.findOne('1');
-      
+
       expect(result).toEqual(mockVisitor);
       expect(visitorRepository.findOne).toHaveBeenCalledWith({
         where: { id: '1' },
@@ -226,26 +258,32 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
 
     it('should throw exception if visitor not found', async () => {
       jest.spyOn(visitorRepository, 'findOne').mockResolvedValue(null);
-      
+
       await expect(service.findOne('1')).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('update', () => {
     it('should update a visitor successfully', async () => {
-      const updatedVisitor = { 
-        ...mockVisitor, 
+      const updatedVisitor = {
+        ...mockVisitor,
         name: mockUpdateVisitorDto.name,
         email: mockUpdateVisitorDto.email,
         phone: mockUpdateVisitorDto.phone,
       };
-      
-      jest.spyOn(visitorRepository, 'findOne').mockResolvedValue(mockVisitor as any);
-      jest.spyOn(visitorRepository, 'save').mockResolvedValue(updatedVisitor as any);
-      jest.spyOn(appointmentRepository, 'save').mockResolvedValue(mockAppointment as any);
-      
+
+      jest
+        .spyOn(visitorRepository, 'findOne')
+        .mockResolvedValue(mockVisitor as any);
+      jest
+        .spyOn(visitorRepository, 'save')
+        .mockResolvedValue(updatedVisitor as any);
+      jest
+        .spyOn(appointmentRepository, 'save')
+        .mockResolvedValue(mockAppointment as any);
+
       const result = await service.update('1', mockUpdateVisitorDto);
-      
+
       expect(result).toEqual(updatedVisitor);
       expect(visitorRepository.findOne).toHaveBeenCalledWith({
         where: { id: '1' },
@@ -256,8 +294,10 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
 
     it('should throw error if visitor not found', async () => {
       jest.spyOn(visitorRepository, 'findOne').mockResolvedValue(null);
-      
-      await expect(service.update('1', mockUpdateVisitorDto)).rejects.toThrow(BadRequestException);
+
+      await expect(service.update('1', mockUpdateVisitorDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -266,25 +306,35 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
       const checkedOutVisitor = {
         ...mockVisitor,
         state: 'completado',
-        appointments: [{
-          ...mockAppointment,
-          check_out_time: new Date(),
-          status: 'completado'
-        }]
+        appointments: [
+          {
+            ...mockAppointment,
+            check_out_time: new Date(),
+            status: 'completado',
+          },
+        ],
       };
-      
-      jest.spyOn(visitorRepository, 'findOne').mockResolvedValue(mockVisitor as any);
-      jest.spyOn(visitorRepository, 'save').mockResolvedValue(checkedOutVisitor as any);
+
+      jest
+        .spyOn(visitorRepository, 'findOne')
+        .mockResolvedValue(mockVisitor as any);
+      jest
+        .spyOn(visitorRepository, 'save')
+        .mockResolvedValue(checkedOutVisitor as any);
       jest.spyOn(appointmentRepository, 'save').mockResolvedValue({
         ...mockAppointment,
         check_out_time: expect.any(Date),
-        status: 'completado'
+        status: 'completado',
       } as any);
-      jest.spyOn(cardService, 'unassignFromVisitor').mockResolvedValue(mockCard as any);
-      jest.spyOn(emailService, 'sendVisitorCheckoutEmail').mockResolvedValue(true as any);
-      
+      jest
+        .spyOn(cardService, 'unassignFromVisitor')
+        .mockResolvedValue(mockCard as any);
+      jest
+        .spyOn(emailService, 'sendVisitorCheckoutEmail')
+        .mockResolvedValue(true as any);
+
       const result = await service.checkOut('1');
-      
+
       expect(result).toEqual(checkedOutVisitor);
       expect(visitorRepository.findOne).toHaveBeenCalled();
       expect(visitorRepository.save).toHaveBeenCalled();
@@ -294,7 +344,7 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
 
     it('should throw error if visitor not found', async () => {
       jest.spyOn(visitorRepository, 'findOne').mockResolvedValue(null);
-      
+
       await expect(service.checkOut('1')).rejects.toThrow(BadRequestException);
     });
 
@@ -303,10 +353,12 @@ describe('VisitorService', () => { // Removed MOCK_LOGGER_PLACEHOLDER
         ...mockVisitor,
         state: 'completado',
       };
-      
-      jest.spyOn(visitorRepository, 'findOne').mockResolvedValue(checkedOutVisitor as any);
-      
+
+      jest
+        .spyOn(visitorRepository, 'findOne')
+        .mockResolvedValue(checkedOutVisitor as any);
+
       await expect(service.checkOut('1')).rejects.toThrow(BadRequestException);
     });
   });
-}); 
+});

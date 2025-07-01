@@ -49,9 +49,8 @@ describe('CreateEmployeeUseCase', () => {
     id: 'new-emp-uuid',
     ...createEmployeeDto,
     // password should not be here
-    credentials: { password_hash: hashedPassword }
+    credentials: { password_hash: hashedPassword },
   } as unknown as Employee; // Cast for test purposes
-
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -75,8 +74,8 @@ describe('CreateEmployeeUseCase', () => {
 
   describe('execute', () => {
     beforeEach(() => {
-        // Default successful mock for bcrypt.hash
-        (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
+      // Default successful mock for bcrypt.hash
+      (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
     });
 
     it('should successfully create an employee if email is unique', async () => {
@@ -86,16 +85,20 @@ describe('CreateEmployeeUseCase', () => {
       const result = await useCase.execute(createEmployeeDto);
 
       expect(result).toEqual(mockNewEmployee);
-      expect(repository.findByEmail).toHaveBeenCalledWith(createEmployeeDto.email);
+      expect(repository.findByEmail).toHaveBeenCalledWith(
+        createEmployeeDto.email,
+      );
       expect(bcrypt.hash).toHaveBeenCalledWith(createEmployeeDto.password, 10); // 10 is salt rounds from use case
-      expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({
-        email: createEmployeeDto.email,
-        credentials: expect.objectContaining({
-          password_hash: hashedPassword,
-          is_email_verified: false,
-          two_factor_enabled: false,
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: createEmployeeDto.email,
+          credentials: expect.objectContaining({
+            password_hash: hashedPassword,
+            is_email_verified: false,
+            two_factor_enabled: false,
+          }),
         }),
-      }));
+      );
       expect(logger.log).toHaveBeenCalledWith(
         'Attempting to create employee account',
         undefined,
@@ -111,8 +114,12 @@ describe('CreateEmployeeUseCase', () => {
     it('should throw BadRequestException if email already exists', async () => {
       mockEmployeeRepository.findByEmail.mockResolvedValue(mockNewEmployee); // Email exists
 
-      await expect(useCase.execute(createEmployeeDto)).rejects.toThrow(BadRequestException);
-      expect(repository.findByEmail).toHaveBeenCalledWith(createEmployeeDto.email);
+      await expect(useCase.execute(createEmployeeDto)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(repository.findByEmail).toHaveBeenCalledWith(
+        createEmployeeDto.email,
+      );
       expect(bcrypt.hash).not.toHaveBeenCalled();
       expect(repository.create).not.toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalledWith(
@@ -127,7 +134,9 @@ describe('CreateEmployeeUseCase', () => {
       const bcryptError = new Error('bcrypt hashing failed');
       (bcrypt.hash as jest.Mock).mockRejectedValue(bcryptError);
 
-      await expect(useCase.execute(createEmployeeDto)).rejects.toThrow(bcryptError);
+      await expect(useCase.execute(createEmployeeDto)).rejects.toThrow(
+        bcryptError,
+      );
       expect(repository.create).not.toHaveBeenCalled();
       // Optional: check for an error log if the use case were to catch and log bcrypt errors
       // expect(logger.error).toHaveBeenCalledWith(...);
@@ -140,11 +149,17 @@ describe('CreateEmployeeUseCase', () => {
       const repoError = new Error('Repository create failed');
       mockEmployeeRepository.create.mockRejectedValue(repoError);
 
-      await expect(useCase.execute(createEmployeeDto)).rejects.toThrow(repoError);
-      expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({
-        email: createEmployeeDto.email,
-        credentials: expect.objectContaining({ password_hash: hashedPassword }),
-      }));
+      await expect(useCase.execute(createEmployeeDto)).rejects.toThrow(
+        repoError,
+      );
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: createEmployeeDto.email,
+          credentials: expect.objectContaining({
+            password_hash: hashedPassword,
+          }),
+        }),
+      );
       // Optional: check for an error log if the use case were to catch and log repo errors
       // expect(logger.error).toHaveBeenCalledWith(...);
       // Current use case does not catch this, so it propagates.

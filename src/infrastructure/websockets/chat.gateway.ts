@@ -5,7 +5,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   MessageBody,
-  ConnectedSocket
+  ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { UseGuards } from '@nestjs/common';
@@ -22,7 +22,7 @@ interface UserSocket extends Socket {
   cors: {
     origin: '*',
   },
-  namespace: 'chat'
+  namespace: 'chat',
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -48,15 +48,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId = client.user.id;
       const userType = client.user.userType;
       const clientId = client.id;
-      
+
       const clientKey = `${userType}:${userId}`;
       const clientSockets = this.connectedClients.get(clientKey) || [];
-      
+
       this.connectedClients.set(
-        clientKey, 
-        clientSockets.filter(id => id !== clientId)
+        clientKey,
+        clientSockets.filter((id) => id !== clientId),
       );
-      
+
       console.log(`Cliente desconectado: ${client.id}`);
     }
   }
@@ -65,28 +65,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('registerUser')
   async registerUser(
     @ConnectedSocket() client: UserSocket,
-    @WsAuthUser() user: any
+    @WsAuthUser() user: any,
   ) {
     const { id, userType } = user;
     const clientKey = `${userType}:${id}`;
-    
+
     // Añadir socket a la lista de sockets del usuario
     const clientSockets = this.connectedClients.get(clientKey) || [];
     clientSockets.push(client.id);
     this.connectedClients.set(clientKey, clientSockets);
-    
+
     client.user = user;
-    
+
     // Subscribir al cliente a sus salas
     const rooms = await this.chatService.getUserRooms(id, userType);
-    rooms.forEach(room => {
+    rooms.forEach((room) => {
       client.join(`room:${room.id}`);
     });
 
     return {
       status: 'success',
       userId: id,
-      userType
+      userType,
     };
   }
 
@@ -95,26 +95,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async joinRoom(
     @ConnectedSocket() client: UserSocket,
     @MessageBody() data: { roomId: string },
-    @WsAuthUser() user: any
+    @WsAuthUser() user: any,
   ) {
     const { roomId } = data;
     const { id, userType } = user;
-    
+
     try {
       // Verificar acceso a la sala
       await this.chatService.getRoomMessages(roomId, id, userType);
-      
+
       // Unir al socket a la sala
       client.join(`room:${roomId}`);
-      
+
       return {
         status: 'success',
-        roomId
+        roomId,
       };
     } catch (e) {
       return {
         status: 'error',
-        message: e.message
+        message: e.message,
       };
     }
   }
@@ -123,16 +123,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leaveRoom')
   async leaveRoom(
     @ConnectedSocket() client: UserSocket,
-    @MessageBody() data: { roomId: string }
+    @MessageBody() data: { roomId: string },
   ) {
     const { roomId } = data;
-    
+
     // Eliminar socket de la sala
     client.leave(`room:${roomId}`);
-    
+
     return {
       status: 'success',
-      roomId
+      roomId,
     };
   }
 
@@ -141,23 +141,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async sendMessage(
     @ConnectedSocket() client: UserSocket,
     @MessageBody() data: CreateMessageDto,
-    @WsAuthUser() user: any
+    @WsAuthUser() user: any,
   ) {
     try {
       // Guardar mensaje en la base de datos
       const message = await this.chatService.addMessage(data, user);
-      
+
       // Emitir mensaje a todos los clientes en esa sala
       this.server.to(`room:${data.roomId}`).emit('newMessage', message);
-      
+
       return {
         status: 'success',
-        messageId: message.id
+        messageId: message.id,
       };
     } catch (e) {
       return {
         status: 'error',
-        message: e.message
+        message: e.message,
       };
     }
   }
@@ -166,44 +166,45 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('createPrivateRoom')
   async createPrivateRoom(
     @ConnectedSocket() client: UserSocket,
-    @MessageBody() data: { targetUserId: string, targetUserType: 'employee' | 'visitor' },
-    @WsAuthUser() user: any
+    @MessageBody()
+    data: { targetUserId: string; targetUserType: 'employee' | 'visitor' },
+    @WsAuthUser() user: any,
   ) {
     try {
       const { targetUserId, targetUserType } = data;
       const { id: userId, userType } = user;
-      
+
       // Crear o recuperar sala privada
       const room = await this.chatService.getOrCreatePrivateRoom(
         userId,
         userType,
         targetUserId,
-        targetUserType
+        targetUserType,
       );
-      
+
       // Unir al socket del usuario a la sala
       client.join(`room:${room.id}`);
-      
+
       // Notificar a otros clientes de los usuarios involucrados
       const targetClientKey = `${targetUserType}:${targetUserId}`;
       const targetSockets = this.connectedClients.get(targetClientKey) || [];
-      
-      targetSockets.forEach(socketId => {
+
+      targetSockets.forEach((socketId) => {
         const socket = this.server.sockets.sockets.get(socketId);
         if (socket) {
           socket.join(`room:${room.id}`);
           socket.emit('roomCreated', room);
         }
       });
-      
+
       return {
         status: 'success',
-        room
+        room,
       };
     } catch (e) {
       return {
         status: 'error',
-        message: e.message
+        message: e.message,
       };
     }
   }
@@ -212,23 +213,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('getRoomMessages')
   async getRoomMessages(
     @MessageBody() data: { roomId: string },
-    @WsAuthUser() user: any
+    @WsAuthUser() user: any,
   ) {
     try {
       const { roomId } = data;
       const { id, userType } = user;
-      
+
       // Obtener mensajes de la sala
-      const messages = await this.chatService.getRoomMessages(roomId, id, userType);
-      
+      const messages = await this.chatService.getRoomMessages(
+        roomId,
+        id,
+        userType,
+      );
+
       return {
         status: 'success',
-        messages
+        messages,
       };
     } catch (e) {
       return {
         status: 'error',
-        message: e.message
+        message: e.message,
       };
     }
   }
@@ -238,19 +243,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async getUserRooms(@WsAuthUser() user: any) {
     try {
       const { id, userType } = user;
-      
+
       // Obtener salas del usuario
       const rooms = await this.chatService.getUserRooms(id, userType);
-      
+
       return {
         status: 'success',
-        rooms
+        rooms,
       };
     } catch (e) {
       return {
         status: 'error',
-        message: e.message
+        message: e.message,
       };
     }
   }
-} 
+}

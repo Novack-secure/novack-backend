@@ -24,10 +24,9 @@ import { TokenModule } from './token.module';
     EmployeeRepository,
     {
       provide: 'IEmployeeRepository',
-      useClass: EmployeeRepository
-    }
+      useClass: EmployeeRepository,
+    },
   ],
   exports: [EmailVerificationService],
 })
 export class EmailVerificationModule {}
-

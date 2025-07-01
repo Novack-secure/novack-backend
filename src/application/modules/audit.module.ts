@@ -5,11 +5,8 @@ import { AuditService } from '../services/audit.service';
 import { EncryptionModule } from './encryption.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([AuditLog]),
-    EncryptionModule,
-  ],
+  imports: [TypeOrmModule.forFeature([AuditLog]), EncryptionModule],
   providers: [AuditService],
   exports: [AuditService],
 })
-export class AuditModule {} 
+export class AuditModule {}

@@ -1,5 +1,10 @@
 import { registerAs } from '@nestjs/config';
 
+/**
+ * Configuración de logging
+ * Los niveles de log soportados son: 'verbose' | 'debug' | 'info' | 'warn' | 'error' | 'none'
+ * El nivel 'none' desactiva completamente el logging
+ */
 export default registerAs('logging', () => {
   const contextLogLevels: Record<string, string> = {};
   for (const key in process.env) {

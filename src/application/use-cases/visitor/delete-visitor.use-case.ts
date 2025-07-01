@@ -19,11 +19,17 @@ export class DeleteVisitorUseCase {
   }
 
   async execute(id: string): Promise<void> {
-    this.logger.log(`Attempting to delete visitor with id: ${id}`, undefined, { visitorId: id });
+    this.logger.log(`Attempting to delete visitor with id: ${id}`, undefined, {
+      visitorId: id,
+    });
 
     const visitor = await this.visitorRepository.findById(id);
     if (!visitor) {
-      this.logger.warn(`Visitor not found for deletion with id: ${id}`, undefined, { visitorId: id });
+      this.logger.warn(
+        `Visitor not found for deletion with id: ${id}`,
+        undefined,
+        { visitorId: id },
+      );
       throw new NotFoundException(`Visitor with ID "${id}" not found`);
     }
 
@@ -37,6 +43,8 @@ export class DeleteVisitorUseCase {
 
     await this.visitorRepository.remove(visitor);
 
-    this.logger.log(`Successfully deleted visitor with id: ${id}`, undefined, { visitorId: id });
+    this.logger.log(`Successfully deleted visitor with id: ${id}`, undefined, {
+      visitorId: id,
+    });
   }
 }

@@ -103,7 +103,8 @@ export class LogTransportService implements OnModuleInit, OnModuleDestroy {
   private async connectToLogstash() {
     if (
       this.isConnecting ||
-      this.connectionAttempts >= this.maxConnectionAttempts
+      this.connectionAttempts >= this.maxConnectionAttempts ||
+      (this.logstashClient && this.logstashClient.writable)
     ) {
       return;
     }
@@ -114,19 +115,20 @@ export class LogTransportService implements OnModuleInit, OnModuleDestroy {
     try {
       const { logstashHost, logstashPort } = this.elkConfig;
 
-      console.log(
-        `Intento ${this.connectionAttempts}/${this.maxConnectionAttempts} de conexión a Logstash: ${logstashHost}:${logstashPort}`,
-      );
+      if (this.elkConfig.environment === 'development') {
+        console.log(
+          `Intento ${this.connectionAttempts}/${this.maxConnectionAttempts} de conexión a Logstash: ${logstashHost}:${logstashPort}`,
+        );
+      }
 
       this.logstashClient = new net.Socket();
 
-      // Configurar timeout de conexión
-      this.logstashClient.setTimeout(10000);
-
       this.logstashClient.connect(logstashPort, logstashHost, () => {
-        console.log(
-          `✅ Conectado a Logstash en ${logstashHost}:${logstashPort}`,
-        );
+        if (this.elkConfig.environment === 'development') {
+          console.log(
+            `✅ Conectado a Logstash en ${logstashHost}:${logstashPort}`,
+          );
+        }
         this.connectionAttempts = 0; // Reset counter on successful connection
         this.isConnecting = false;
         this.processLogQueue();
@@ -139,17 +141,12 @@ export class LogTransportService implements OnModuleInit, OnModuleDestroy {
         this.handleConnectionError();
       });
 
-      this.logstashClient.on('timeout', () => {
-        console.error(
-          `⏱️ Timeout en conexión con Logstash (intento ${this.connectionAttempts})`,
-        );
-        this.handleConnectionError();
-      });
-
       this.logstashClient.on('close', () => {
-        console.log(
-          `🔌 Conexión con Logstash cerrada (intento ${this.connectionAttempts})`,
-        );
+        if (this.logstashClient && this.logstashClient.writable) {
+          console.log(
+            `🔌 Conexión con Logstash cerrada (intento ${this.connectionAttempts})`,
+          );
+        }
         this.logstashClient = null;
         this.scheduleReconnection();
       });
@@ -274,7 +271,10 @@ export class LogTransportService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Fallback a consola si está habilitado y no se envió por otros medios
-    if (this.fallbackToConsole && (!logSent || !this.elkConfig.enabled)) {
+    if (
+      (this.fallbackToConsole && (!logSent || !this.elkConfig.enabled)) ||
+      this.elkConfig.environment === 'development'
+    ) {
       console.log(logString);
     }
   }
@@ -295,4 +295,3 @@ export class LogTransportService implements OnModuleInit, OnModuleDestroy {
     };
   }
 }
-

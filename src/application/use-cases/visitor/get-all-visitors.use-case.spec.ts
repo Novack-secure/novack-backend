@@ -30,7 +30,6 @@ describe('GetAllVisitorsUseCase', () => {
     mockLoggerService.warn.mockReset();
     mockLoggerService.error.mockReset();
 
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GetAllVisitorsUseCase,
@@ -49,8 +48,18 @@ describe('GetAllVisitorsUseCase', () => {
 
   describe('execute', () => {
     const mockVisitorsResult: Visitor[] = [
-      { id: 'visitor-uuid-1', name: 'Visitor One', email: 'one@example.com', state: 'pendiente' } as Visitor,
-      { id: 'visitor-uuid-2', name: 'Visitor Two', email: 'two@example.com', state: 'en_progreso' } as Visitor,
+      {
+        id: 'visitor-uuid-1',
+        name: 'Visitor One',
+        email: 'one@example.com',
+        state: 'pendiente',
+      } as Visitor,
+      {
+        id: 'visitor-uuid-2',
+        name: 'Visitor Two',
+        email: 'two@example.com',
+        state: 'en_progreso',
+      } as Visitor,
     ];
 
     it('should return an array of visitors if found', async () => {
@@ -60,11 +69,13 @@ describe('GetAllVisitorsUseCase', () => {
 
       expect(result).toEqual(mockVisitorsResult);
       expect(repository.findAll).toHaveBeenCalledTimes(1);
-      expect(mockLoggerService.log).toHaveBeenCalledWith('Attempting to fetch all visitors.');
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        'Attempting to fetch all visitors.',
+      );
       expect(mockLoggerService.log).toHaveBeenCalledWith(
         `Successfully fetched ${mockVisitorsResult.length} visitors.`,
         undefined,
-        { count: mockVisitorsResult.length }
+        { count: mockVisitorsResult.length },
       );
     });
 
@@ -75,25 +86,30 @@ describe('GetAllVisitorsUseCase', () => {
 
       expect(result).toEqual([]);
       expect(repository.findAll).toHaveBeenCalledTimes(1);
-      expect(mockLoggerService.log).toHaveBeenCalledWith('Attempting to fetch all visitors.');
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        'Attempting to fetch all visitors.',
+      );
       expect(mockLoggerService.log).toHaveBeenCalledWith(
         'Successfully fetched 0 visitors.',
         undefined,
-        { count: 0 }
+        { count: 0 },
       );
     });
 
     it('should log an attempt to fetch all visitors', async () => {
       mockVisitorRepository.findAll.mockResolvedValue([]); // Does not matter what it returns for this test
       await useCase.execute();
-      expect(mockLoggerService.log).toHaveBeenCalledWith('Attempting to fetch all visitors.');
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        'Attempting to fetch all visitors.',
+      );
     });
 
     it('should propagate errors from the repository', async () => {
       const errorMessage = 'Database error';
       // Mock it to be called multiple times for each expect call
-      mockVisitorRepository.findAll.mockRejectedValueOnce(new Error(errorMessage)).mockRejectedValueOnce(new Error(errorMessage));
-
+      mockVisitorRepository.findAll
+        .mockRejectedValueOnce(new Error(errorMessage))
+        .mockRejectedValueOnce(new Error(errorMessage));
 
       await expect(useCase.execute()).rejects.toThrow(Error);
       await expect(useCase.execute()).rejects.toThrow(errorMessage);

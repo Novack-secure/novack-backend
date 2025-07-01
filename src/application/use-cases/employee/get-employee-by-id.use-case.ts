@@ -14,14 +14,18 @@ export class GetEmployeeByIdUseCase {
   }
 
   async execute(id: string): Promise<Employee> {
-    this.logger.log(`Attempting to fetch employee with id: ${id}`, undefined, { employeeId: id });
+    this.logger.log(`Attempting to fetch employee with id: ${id}`, undefined, {
+      employeeId: id,
+    });
 
     // The repository method findById should ideally handle which relations are loaded.
     // For a GetEmployeeById use case, it's common to load essential relations like 'credentials', 'supplier'.
     const employee = await this.employeeRepository.findById(id);
 
     if (!employee) {
-      this.logger.warn(`Employee not found with id: ${id}`, undefined, { employeeId: id });
+      this.logger.warn(`Employee not found with id: ${id}`, undefined, {
+        employeeId: id,
+      });
       throw new NotFoundException(`Employee with ID "${id}" not found`);
     }
 

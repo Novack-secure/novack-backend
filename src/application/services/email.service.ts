@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common'; // Logger removed, InternalServerErrorException added
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common'; // Logger removed, InternalServerErrorException added
 import { Resend } from 'resend';
 import { ConfigService } from '@nestjs/config';
 import { Supplier } from '../../domain/entities/supplier.entity';
@@ -25,9 +29,19 @@ export class EmailService {
     this.logger.setContext('EmailService'); // Set context
   }
 
-  private async getEmailHtml(templateName: string, data: Record<string, any>): Promise<string> {
+  private async getEmailHtml(
+    templateName: string,
+    data: Record<string, any>,
+  ): Promise<string> {
     try {
-      const templatePath = path.join(__dirname, '..', '..', 'templates', 'email', `${templateName}.html`);
+      const templatePath = path.join(
+        __dirname,
+        '..',
+        '..',
+        'templates',
+        'email',
+        `${templateName}.html`,
+      );
       // __dirname is 'src/application/services' when running, so '..' '..' gets to 'src/'
       // For a more robust path, consider process.cwd() + '/src/templates/email/...' if __dirname is unreliable
       // const templatePath = path.resolve(process.cwd(), 'src', 'templates', 'email', `${templateName}.html`);
@@ -39,9 +53,16 @@ export class EmailService {
       }
       return html;
     } catch (error) {
-      this.logger.error(`Failed to read or process email template: ${templateName}`, undefined, error.stack, { originalError: error.message, templateName });
+      this.logger.error(
+        `Failed to read or process email template: ${templateName}`,
+        undefined,
+        error.stack,
+        { originalError: error.message, templateName },
+      );
       // Depending on policy, could throw or return a fallback/error HTML
-      throw new InternalServerErrorException(`Could not load email template: ${templateName}`);
+      throw new InternalServerErrorException(
+        `Could not load email template: ${templateName}`,
+      );
     }
   }
 
@@ -54,23 +75,38 @@ export class EmailService {
     try {
       if (!supplier.subscription) {
         // This is a business logic validation, BadRequestException might still be appropriate here
-        this.logger.warn('Supplier creation email attempted for supplier without subscription info', undefined, { supplierId: supplier.id });
-        throw new BadRequestException('El proveedor no tiene información de suscripción para el email.');
+        this.logger.warn(
+          'Supplier creation email attempted for supplier without subscription info',
+          undefined,
+          { supplierId: supplier.id },
+        );
+        throw new BadRequestException(
+          'El proveedor no tiene información de suscripción para el email.',
+        );
       }
 
       const html = await this.getEmailHtml(templateName, {
         supplierName: supplier.supplier_name,
         email: email,
         temporalPassword: temporalPassword,
-        subscriptionGeneral: supplier.subscription.is_subscribed ? 'Activa' : 'Inactiva',
-        subscriptionCards: supplier.subscription.has_card_subscription ? 'Activa' : 'Inactiva',
-        subscriptionSensors: supplier.subscription.has_sensor_subscription ? 'Activa' : 'Inactiva',
+        subscriptionGeneral: supplier.subscription.is_subscribed
+          ? 'Activa'
+          : 'Inactiva',
+        subscriptionCards: supplier.subscription.has_card_subscription
+          ? 'Activa'
+          : 'Inactiva',
+        subscriptionSensors: supplier.subscription.has_sensor_subscription
+          ? 'Activa'
+          : 'Inactiva',
         maxCardCount: supplier.subscription.max_card_count,
         maxEmployeeCount: supplier.subscription.max_employee_count,
         year: new Date().getFullYear(),
       });
 
-      const fromAddress = this.configService.get<string>('EMAIL_FROM_ONBOARDING', 'onboarding@resend.dev');
+      const fromAddress = this.configService.get<string>(
+        'EMAIL_FROM_ONBOARDING',
+        'onboarding@resend.dev',
+      );
 
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
@@ -80,20 +116,40 @@ export class EmailService {
       });
 
       if (error) {
-        this.logger.error('Failed to send supplier creation email', undefined, JSON.stringify(error), { originalError: error.message, to: email, supplierId: supplier.id });
-        throw new InternalServerErrorException(`Failed to send email: ${error.message}`);
+        this.logger.error(
+          'Failed to send supplier creation email',
+          undefined,
+          JSON.stringify(error),
+          { originalError: error.message, to: email, supplierId: supplier.id },
+        );
+        throw new InternalServerErrorException(
+          `Failed to send email: ${error.message}`,
+        );
       }
 
-      this.logger.log('Supplier creation email sent successfully', undefined, { to: email, supplierId: supplier.id });
+      this.logger.log('Supplier creation email sent successfully', undefined, {
+        to: email,
+        supplierId: supplier.id,
+      });
       return data;
-
     } catch (e) {
       // Catch errors from getEmailHtml or other synchronous parts, or re-thrown errors
-      this.logger.error(`Error in sendSupplierCreationEmail process for template ${templateName}`, undefined, e.stack || JSON.stringify(e), { originalError: e.message, to: email, supplierId: supplier.id });
-      if (e instanceof BadRequestException || e instanceof InternalServerErrorException) {
+      this.logger.error(
+        `Error in sendSupplierCreationEmail process for template ${templateName}`,
+        undefined,
+        e.stack || JSON.stringify(e),
+        { originalError: e.message, to: email, supplierId: supplier.id },
+      );
+      if (
+        e instanceof BadRequestException ||
+        e instanceof InternalServerErrorException
+      ) {
         throw e; // Re-throw if it's already one of our handled types
       }
-      throw new InternalServerErrorException(e.message || 'An unexpected error occurred while sending supplier creation email.');
+      throw new InternalServerErrorException(
+        e.message ||
+          'An unexpected error occurred while sending supplier creation email.',
+      );
     }
   }
 
@@ -104,22 +160,37 @@ export class EmailService {
     const templateName = 'supplier-update';
     try {
       if (!supplier.subscription) {
-        this.logger.warn('Supplier update email attempted for supplier without subscription info', undefined, { supplierId: supplier.id });
-        throw new BadRequestException('El proveedor no tiene información de suscripción para el email.');
+        this.logger.warn(
+          'Supplier update email attempted for supplier without subscription info',
+          undefined,
+          { supplierId: supplier.id },
+        );
+        throw new BadRequestException(
+          'El proveedor no tiene información de suscripción para el email.',
+        );
       }
 
       const html = await this.getEmailHtml(templateName, {
         supplierName: supplier.supplier_name,
         changes: changes, // Ensure 'changes' is safe HTML or properly escaped if it comes from user input.
-        subscriptionGeneral: supplier.subscription.is_subscribed ? 'Activa' : 'Inactiva',
-        subscriptionCards: supplier.subscription.has_card_subscription ? 'Activa' : 'Inactiva',
-        subscriptionSensors: supplier.subscription.has_sensor_subscription ? 'Activa' : 'Inactiva',
+        subscriptionGeneral: supplier.subscription.is_subscribed
+          ? 'Activa'
+          : 'Inactiva',
+        subscriptionCards: supplier.subscription.has_card_subscription
+          ? 'Activa'
+          : 'Inactiva',
+        subscriptionSensors: supplier.subscription.has_sensor_subscription
+          ? 'Activa'
+          : 'Inactiva',
         maxCardCount: supplier.subscription.max_card_count,
         maxEmployeeCount: supplier.subscription.max_employee_count,
         year: new Date().getFullYear(),
       });
 
-      const fromAddress = this.configService.get<string>('EMAIL_FROM_INFO', 'info@resend.dev'); // Example 'from'
+      const fromAddress = this.configService.get<string>(
+        'EMAIL_FROM_INFO',
+        'info@resend.dev',
+      ); // Example 'from'
 
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
@@ -129,19 +200,47 @@ export class EmailService {
       });
 
       if (error) {
-        this.logger.error('Failed to send supplier update email', undefined, JSON.stringify(error), { originalError: error.message, to: supplier.contact_email, supplierId: supplier.id });
-        throw new InternalServerErrorException(`Failed to send email: ${error.message}`);
+        this.logger.error(
+          'Failed to send supplier update email',
+          undefined,
+          JSON.stringify(error),
+          {
+            originalError: error.message,
+            to: supplier.contact_email,
+            supplierId: supplier.id,
+          },
+        );
+        throw new InternalServerErrorException(
+          `Failed to send email: ${error.message}`,
+        );
       }
 
-      this.logger.log('Supplier update email sent successfully', undefined, { to: supplier.contact_email, supplierId: supplier.id });
+      this.logger.log('Supplier update email sent successfully', undefined, {
+        to: supplier.contact_email,
+        supplierId: supplier.id,
+      });
       return data;
-
     } catch (e) {
-      this.logger.error(`Error in sendSupplierUpdateEmail process for template ${templateName}`, undefined, e.stack || JSON.stringify(e), { originalError: e.message, to: supplier.contact_email, supplierId: supplier.id });
-      if (e instanceof BadRequestException || e instanceof InternalServerErrorException) {
+      this.logger.error(
+        `Error in sendSupplierUpdateEmail process for template ${templateName}`,
+        undefined,
+        e.stack || JSON.stringify(e),
+        {
+          originalError: e.message,
+          to: supplier.contact_email,
+          supplierId: supplier.id,
+        },
+      );
+      if (
+        e instanceof BadRequestException ||
+        e instanceof InternalServerErrorException
+      ) {
         throw e;
       }
-      throw new InternalServerErrorException(e.message || 'An unexpected error occurred while sending supplier update email.');
+      throw new InternalServerErrorException(
+        e.message ||
+          'An unexpected error occurred while sending supplier update email.',
+      );
     }
   }
 
@@ -154,10 +253,17 @@ export class EmailService {
   ) {
     const templateName = 'visitor-welcome';
     try {
-      const appointmentDateString = appointmentDate.toLocaleDateString('es-PE', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      });
+      const appointmentDateString = appointmentDate.toLocaleDateString(
+        'es-PE',
+        {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        },
+      );
 
       let qrCodeBlock = '';
       if (qrCodeUrl) {
@@ -176,7 +282,10 @@ export class EmailService {
         year: new Date().getFullYear(),
       });
 
-      const fromAddress = this.configService.get<string>('EMAIL_FROM_NOREPLY', 'no-reply@spcedes.com');
+      const fromAddress = this.configService.get<string>(
+        'EMAIL_FROM_NOREPLY',
+        'no-reply@spcedes.com',
+      );
 
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
@@ -186,18 +295,34 @@ export class EmailService {
       });
 
       if (error) {
-        this.logger.error('Failed to send visitor welcome email', undefined, JSON.stringify(error), { originalError: error.message, to });
-        throw new InternalServerErrorException(`Failed to send email: ${error.message}`);
+        this.logger.error(
+          'Failed to send visitor welcome email',
+          undefined,
+          JSON.stringify(error),
+          { originalError: error.message, to },
+        );
+        throw new InternalServerErrorException(
+          `Failed to send email: ${error.message}`,
+        );
       }
-      this.logger.log('Visitor welcome email sent successfully', undefined, { to });
+      this.logger.log('Visitor welcome email sent successfully', undefined, {
+        to,
+      });
       return data;
-
     } catch (e) {
-      this.logger.error(`Error in sendVisitorWelcomeEmail process for template ${templateName}`, undefined, e.stack || JSON.stringify(e), { originalError: e.message, to });
+      this.logger.error(
+        `Error in sendVisitorWelcomeEmail process for template ${templateName}`,
+        undefined,
+        e.stack || JSON.stringify(e),
+        { originalError: e.message, to },
+      );
       if (e instanceof InternalServerErrorException) {
         throw e;
       }
-      throw new InternalServerErrorException(e.message || 'An unexpected error occurred while sending visitor welcome email.');
+      throw new InternalServerErrorException(
+        e.message ||
+          'An unexpected error occurred while sending visitor welcome email.',
+      );
     }
   }
 
@@ -211,11 +336,21 @@ export class EmailService {
     const templateName = 'visitor-checkout';
     try {
       const dateFormatOptions: Intl.DateTimeFormatOptions = {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit',
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
       };
-      const checkInDateString = checkInTime.toLocaleDateString('es-PE', dateFormatOptions);
-      const checkOutDateString = checkOutTime.toLocaleDateString('es-PE', dateFormatOptions);
+      const checkInDateString = checkInTime.toLocaleDateString(
+        'es-PE',
+        dateFormatOptions,
+      );
+      const checkOutDateString = checkOutTime.toLocaleDateString(
+        'es-PE',
+        dateFormatOptions,
+      );
 
       const html = await this.getEmailHtml(templateName, {
         visitorName,
@@ -225,7 +360,10 @@ export class EmailService {
         year: new Date().getFullYear(),
       });
 
-      const fromAddress = this.configService.get<string>('EMAIL_FROM_NOREPLY', 'no-reply@spcedes.com');
+      const fromAddress = this.configService.get<string>(
+        'EMAIL_FROM_NOREPLY',
+        'no-reply@spcedes.com',
+      );
 
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
@@ -235,18 +373,34 @@ export class EmailService {
       });
 
       if (error) {
-        this.logger.error('Failed to send visitor checkout email', undefined, JSON.stringify(error), { originalError: error.message, to });
-        throw new InternalServerErrorException(`Failed to send email: ${error.message}`);
+        this.logger.error(
+          'Failed to send visitor checkout email',
+          undefined,
+          JSON.stringify(error),
+          { originalError: error.message, to },
+        );
+        throw new InternalServerErrorException(
+          `Failed to send email: ${error.message}`,
+        );
       }
-      this.logger.log('Visitor checkout email sent successfully', undefined, { to });
+      this.logger.log('Visitor checkout email sent successfully', undefined, {
+        to,
+      });
       return data;
-
     } catch (e) {
-      this.logger.error(`Error in sendVisitorCheckoutEmail process for template ${templateName}`, undefined, e.stack || JSON.stringify(e), { originalError: e.message, to });
+      this.logger.error(
+        `Error in sendVisitorCheckoutEmail process for template ${templateName}`,
+        undefined,
+        e.stack || JSON.stringify(e),
+        { originalError: e.message, to },
+      );
       if (e instanceof InternalServerErrorException) {
         throw e;
       }
-      throw new InternalServerErrorException(e.message || 'An unexpected error occurred while sending visitor checkout email.');
+      throw new InternalServerErrorException(
+        e.message ||
+          'An unexpected error occurred while sending visitor checkout email.',
+      );
     }
   }
 
@@ -264,7 +418,10 @@ export class EmailService {
         year: new Date().getFullYear(),
       });
 
-      const fromAddress = this.configService.get<string>('EMAIL_FROM_SECURITY', 'security@spcedes.com');
+      const fromAddress = this.configService.get<string>(
+        'EMAIL_FROM_SECURITY',
+        'security@spcedes.com',
+      );
 
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
@@ -274,18 +431,32 @@ export class EmailService {
       });
 
       if (error) {
-        this.logger.error('Failed to send 2FA setup email', undefined, JSON.stringify(error), { originalError: error.message, to });
-        throw new InternalServerErrorException(`Failed to send email: ${error.message}`);
+        this.logger.error(
+          'Failed to send 2FA setup email',
+          undefined,
+          JSON.stringify(error),
+          { originalError: error.message, to },
+        );
+        throw new InternalServerErrorException(
+          `Failed to send email: ${error.message}`,
+        );
       }
       this.logger.log('2FA setup email sent successfully', undefined, { to });
       return data;
-
     } catch (e) {
-      this.logger.error(`Error in send2FASetupEmail process for template ${templateName}`, undefined, e.stack || JSON.stringify(e), { originalError: e.message, to });
+      this.logger.error(
+        `Error in send2FASetupEmail process for template ${templateName}`,
+        undefined,
+        e.stack || JSON.stringify(e),
+        { originalError: e.message, to },
+      );
       if (e instanceof InternalServerErrorException) {
         throw e;
       }
-      throw new InternalServerErrorException(e.message || 'An unexpected error occurred while sending 2FA setup email.');
+      throw new InternalServerErrorException(
+        e.message ||
+          'An unexpected error occurred while sending 2FA setup email.',
+      );
     }
   }
 
@@ -295,9 +466,15 @@ export class EmailService {
     verificationToken: string,
   ) {
     const templateName = 'email-verification';
-    this.logger.log('Attempting to send email verification', undefined, { to, employeeName });
+    this.logger.log('Attempting to send email verification', undefined, {
+      to,
+      employeeName,
+    });
 
-    const baseUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+    const baseUrl = this.configService.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:3000',
+    );
     const verificationUrl = `${baseUrl}/verify-email/${verificationToken}`;
 
     try {
@@ -307,7 +484,10 @@ export class EmailService {
         year: new Date().getFullYear(),
       });
 
-      const fromAddress = this.configService.get<string>('EMAIL_FROM_VERIFICATION', 'verify@spcedes.com');
+      const fromAddress = this.configService.get<string>(
+        'EMAIL_FROM_VERIFICATION',
+        'verify@spcedes.com',
+      );
 
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
@@ -317,25 +497,46 @@ export class EmailService {
       });
 
       if (error) {
-        this.logger.error('Failed to send email verification', undefined, JSON.stringify(error), { originalError: error.message, to, verificationToken });
-        throw new InternalServerErrorException(`Failed to send email verification: ${error.message}`);
+        this.logger.error(
+          'Failed to send email verification',
+          undefined,
+          JSON.stringify(error),
+          { originalError: error.message, to, verificationToken },
+        );
+        throw new InternalServerErrorException(
+          `Failed to send email verification: ${error.message}`,
+        );
       }
 
-      this.logger.log('Email verification sent successfully', undefined, { to, verificationToken });
+      this.logger.log('Email verification sent successfully', undefined, {
+        to,
+        verificationToken,
+      });
       return data;
-
     } catch (e) {
-      this.logger.error(`Error in sendEmailVerification process for template ${templateName}`, undefined, e.stack || JSON.stringify(e), { originalError: e.message, to });
+      this.logger.error(
+        `Error in sendEmailVerification process for template ${templateName}`,
+        undefined,
+        e.stack || JSON.stringify(e),
+        { originalError: e.message, to },
+      );
       if (e instanceof InternalServerErrorException) {
         throw e;
       }
-      throw new InternalServerErrorException(e.message || 'An unexpected error occurred while sending email verification.');
+      throw new InternalServerErrorException(
+        e.message ||
+          'An unexpected error occurred while sending email verification.',
+      );
     }
   }
 
   async sendEmailVerificationSuccess(to: string, employeeName: string) {
     const templateName = 'email-verification-success';
-    this.logger.log('Attempting to send email verification success notification', undefined, { to, employeeName });
+    this.logger.log(
+      'Attempting to send email verification success notification',
+      undefined,
+      { to, employeeName },
+    );
 
     try {
       const html = await this.getEmailHtml(templateName, {
@@ -344,7 +545,10 @@ export class EmailService {
         // loginUrl: this.configService.get<string>('FRONTEND_URL_LOGIN', 'http://localhost:3000/login') // Optional placeholder
       });
 
-      const fromAddress = this.configService.get<string>('EMAIL_FROM_NOREPLY', 'no-reply@spcedes.com');
+      const fromAddress = this.configService.get<string>(
+        'EMAIL_FROM_NOREPLY',
+        'no-reply@spcedes.com',
+      );
 
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
@@ -354,20 +558,37 @@ export class EmailService {
       });
 
       if (error) {
-        this.logger.error('Failed to send email verification success notification', undefined, JSON.stringify(error), { originalError: error.message, to });
-        throw new InternalServerErrorException(`Failed to send verification success email: ${error.message}`);
+        this.logger.error(
+          'Failed to send email verification success notification',
+          undefined,
+          JSON.stringify(error),
+          { originalError: error.message, to },
+        );
+        throw new InternalServerErrorException(
+          `Failed to send verification success email: ${error.message}`,
+        );
       }
 
-      this.logger.log('Email verification success notification sent successfully', undefined, { to });
+      this.logger.log(
+        'Email verification success notification sent successfully',
+        undefined,
+        { to },
+      );
       return data;
-
     } catch (e) {
-      this.logger.error(`Error in sendEmailVerificationSuccess process for template ${templateName}`, undefined, e.stack || JSON.stringify(e), { originalError: e.message, to });
+      this.logger.error(
+        `Error in sendEmailVerificationSuccess process for template ${templateName}`,
+        undefined,
+        e.stack || JSON.stringify(e),
+        { originalError: e.message, to },
+      );
       if (e instanceof InternalServerErrorException) {
         throw e;
       }
-      throw new InternalServerErrorException(e.message || 'An unexpected error occurred while sending email verification success notification.');
+      throw new InternalServerErrorException(
+        e.message ||
+          'An unexpected error occurred while sending email verification success notification.',
+      );
     }
   }
 }
-

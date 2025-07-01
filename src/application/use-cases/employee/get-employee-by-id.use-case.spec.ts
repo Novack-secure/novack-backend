@@ -28,7 +28,6 @@ describe('GetEmployeeByIdUseCase', () => {
   // Keep a direct reference to the logger mock to check calls on it
   let logger: StructuredLoggerService;
 
-
   beforeEach(async () => {
     jest.resetAllMocks(); // Reset all mocks before each test
 
@@ -65,12 +64,15 @@ describe('GetEmployeeByIdUseCase', () => {
       created_at: new Date(),
       updated_at: new Date(),
       deleted_at: null,
-      supplier: { id: 'supplier-uuid', supplier_name: 'Test Supplier' } as Supplier,
+      supplier: {
+        id: 'supplier-uuid',
+        supplier_name: 'Test Supplier',
+      } as Supplier,
       credentials: {
-          id: 'cred-uuid',
-          employee_id: employeeId,
-          is_email_verified: true
-        } as EmployeeCredentials,
+        id: 'cred-uuid',
+        employee_id: employeeId,
+        is_email_verified: true,
+      } as EmployeeCredentials,
       cards: [], // Added missing required field
       chat_rooms: [], // Added missing required field
       // other necessary fields or relations
@@ -99,7 +101,9 @@ describe('GetEmployeeByIdUseCase', () => {
     it('should throw NotFoundException if employee is not found', async () => {
       mockEmployeeRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute(employeeId)).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute(employeeId)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(repository.findById).toHaveBeenCalledWith(employeeId);
       expect(logger.warn).toHaveBeenCalledWith(
         `Employee not found with id: ${employeeId}`,
@@ -119,27 +123,29 @@ describe('GetEmployeeByIdUseCase', () => {
     });
 
     it('should propagate an unexpected error from repository.findById', async () => {
-        const errorMessage = "Database connection error";
-        mockEmployeeRepository.findById.mockRejectedValue(new Error(errorMessage));
+      const errorMessage = 'Database connection error';
+      mockEmployeeRepository.findById.mockRejectedValue(
+        new Error(errorMessage),
+      );
 
-        // Check that the execute method is called twice for the two expects
-        mockEmployeeRepository.findById.mockClear(); // Clear previous calls if any
-        mockEmployeeRepository.findById.mockRejectedValueOnce(new Error(errorMessage))
-                                    .mockRejectedValueOnce(new Error(errorMessage));
+      // Check that the execute method is called twice for the two expects
+      mockEmployeeRepository.findById.mockClear(); // Clear previous calls if any
+      mockEmployeeRepository.findById
+        .mockRejectedValueOnce(new Error(errorMessage))
+        .mockRejectedValueOnce(new Error(errorMessage));
 
+      await expect(useCase.execute(employeeId)).rejects.toThrow(Error);
+      // To specifically check for the message, ensure the error is an instance of Error
+      try {
+        await useCase.execute(employeeId);
+      } catch (e) {
+        expect(e.message).toBe(errorMessage);
+      }
 
-        await expect(useCase.execute(employeeId)).rejects.toThrow(Error);
-        // To specifically check for the message, ensure the error is an instance of Error
-        try {
-            await useCase.execute(employeeId);
-        } catch (e) {
-            expect(e.message).toBe(errorMessage);
-        }
-
-        expect(repository.findById).toHaveBeenCalledWith(employeeId);
-        expect(repository.findById).toHaveBeenCalledTimes(2);
-        // The use case does not have specific try-catch for repository errors,
-        // so it won't log an error itself; it relies on a global exception filter.
+      expect(repository.findById).toHaveBeenCalledWith(employeeId);
+      expect(repository.findById).toHaveBeenCalledTimes(2);
+      // The use case does not have specific try-catch for repository errors,
+      // so it won't log an error itself; it relies on a global exception filter.
     });
   });
 });

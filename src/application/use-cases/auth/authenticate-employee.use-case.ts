@@ -1,6 +1,6 @@
 /**
  * Caso de uso: Autenticar empleado
- * 
+ *
  * Implementa la lógica de autenticación de empleados usando sus credenciales.
  */
 
@@ -40,10 +40,17 @@ export class AuthenticateEmployeeUseCase {
   ) {}
 
   // Add Request to the signature
-  async execute(credentials: AuthenticateEmployeeDto, req: Request): Promise<AuthenticationResult> {
+  async execute(
+    credentials: AuthenticateEmployeeDto,
+    req: Request,
+  ): Promise<AuthenticationResult> {
     try {
       // Delegate to AuthService.login, which now uses TokenService
-      const authResult = await this.authService.login(credentials.email, credentials.password, req);
+      const authResult = await this.authService.login(
+        credentials.email,
+        credentials.password,
+        req,
+      );
 
       // The authResult from authService.login now includes the full token set and employee
       // Ensure the employee object is shaped as needed (e.g., omitting sensitive fields)

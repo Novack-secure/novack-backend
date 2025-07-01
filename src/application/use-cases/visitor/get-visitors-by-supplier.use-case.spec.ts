@@ -26,17 +26,42 @@ describe('GetVisitorsBySupplierUseCase', () => {
   let supplierRepo: ISupplierRepository;
 
   const supplierId = 'supplier-uuid-for-visitors';
-  const mockSupplier = { id: supplierId, supplier_name: 'Supplier For Visitors' } as Supplier;
+  const mockSupplier = {
+    id: supplierId,
+    supplier_name: 'Supplier For Visitors',
+  } as Supplier;
   const mockVisitorsList: Visitor[] = [
     {
-      id: 'visitor-uuid-1', name: 'Visitor Alpha', supplier_id: supplierId,
-      email: 'alpha@example.com', phone: '111', location: 'Loc1', additional_info: {}, state: 'pendiente',
-      created_at: new Date(), updated_at: new Date(), appointments: [], card: null, supplier: mockSupplier, profile_image_url: null
+      id: 'visitor-uuid-1',
+      name: 'Visitor Alpha',
+      supplier_id: supplierId,
+      email: 'alpha@example.com',
+      phone: '111',
+      location: 'Loc1',
+      additional_info: {},
+      state: 'pendiente',
+      created_at: new Date(),
+      updated_at: new Date(),
+      appointments: [],
+      card: null,
+      supplier: mockSupplier,
+      profile_image_url: null,
     } as Visitor,
     {
-      id: 'visitor-uuid-2', name: 'Visitor Beta', supplier_id: supplierId,
-      email: 'beta@example.com', phone: '222', location: 'Loc2', additional_info: {}, state: 'en_progreso',
-      created_at: new Date(), updated_at: new Date(), appointments: [], card: null, supplier: mockSupplier, profile_image_url: null
+      id: 'visitor-uuid-2',
+      name: 'Visitor Beta',
+      supplier_id: supplierId,
+      email: 'beta@example.com',
+      phone: '222',
+      location: 'Loc2',
+      additional_info: {},
+      state: 'en_progreso',
+      created_at: new Date(),
+      updated_at: new Date(),
+      appointments: [],
+      card: null,
+      supplier: mockSupplier,
+      profile_image_url: null,
     } as Visitor,
   ];
 
@@ -52,7 +77,9 @@ describe('GetVisitorsBySupplierUseCase', () => {
       ],
     }).compile();
 
-    useCase = module.get<GetVisitorsBySupplierUseCase>(GetVisitorsBySupplierUseCase);
+    useCase = module.get<GetVisitorsBySupplierUseCase>(
+      GetVisitorsBySupplierUseCase,
+    );
     visitorRepo = module.get<IVisitorRepository>(IVisitorRepository);
     supplierRepo = module.get<ISupplierRepository>(ISupplierRepository);
   });
@@ -102,7 +129,9 @@ describe('GetVisitorsBySupplierUseCase', () => {
     it('should throw NotFoundException if the supplier does not exist', async () => {
       mockSupplierRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute(supplierId)).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute(supplierId)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(supplierRepo.findById).toHaveBeenCalledWith(supplierId);
       expect(visitorRepo.findBySupplier).not.toHaveBeenCalled(); // Should not be called if supplier not found
       expect(mockLoggerService.warn).toHaveBeenCalledWith(

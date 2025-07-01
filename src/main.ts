@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger, HttpStatus } from '@nestjs/common'; // HttpStatus might be used by the filter
+import { Logger, HttpStatus, LogLevel } from '@nestjs/common'; // HttpStatus might be used by the filter
 import { ConfigService } from '@nestjs/config';
 // import { v4 as uuidv4 } from 'uuid'; // No longer directly used here for startupCorrelationId
 import { ValidationPipe } from '@nestjs/common';
@@ -11,32 +11,44 @@ import { StructuredLoggerService } from './infrastructure/logging/structured-log
 import { GlobalExceptionFilter } from './infrastructure/filters/global-exception.filter';
 
 async function bootstrap() {
+  // Configurar nivel de logs según entorno
+  const isSimpleLogging = process.env.SIMPLE_LOGGING === 'true';
+  const logLevels: LogLevel[] = isSimpleLogging
+    ? ['error', 'warn'] // Solo mostrar errores y advertencias en modo simple
+    : ['log', 'error', 'warn', 'debug', 'verbose']; // Logs completos
+
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true, // Buffer logs until a logger is attached
+    logger: isSimpleLogging ? logLevels : undefined, // Usar logger básico si SIMPLE_LOGGING=true
   });
 
-  // Use the app's StructuredLoggerService for consistency, using resolve() for TRANSIENT scoped providers
-  // For the GlobalExceptionFilter, we need an instance of StructuredLoggerService.
-  // Since LoggingModule is Global, StructuredLoggerService should be available.
-  const structuredLoggerService = await app.resolve(StructuredLoggerService);
+  // Aplicar el logger estructurado solo si no estamos en modo simple
+  if (!isSimpleLogging) {
+    const structuredLoggerService = await app.resolve(StructuredLoggerService);
+    app.useLogger(structuredLoggerService);
+  }
 
-  // app.useLogger(Logger); // Using NestJS's default Logger token, which should be our StructuredLoggerService
-  // It's better to pass the specific instance if we have it, especially for app-level logging.
-  app.useLogger(structuredLoggerService);
   app.flushLogs(); // Flush buffered logs using the newly set logger
 
-  // Register the GlobalExceptionFilter
-  // const structuredLoggerService = app.get(StructuredLoggerService); // Already got above
-  app.useGlobalFilters(new GlobalExceptionFilter(structuredLoggerService));
+  // Register the GlobalExceptionFilter solo si no estamos en modo simple
+  if (!isSimpleLogging) {
+    const structuredLoggerService = await app.resolve(StructuredLoggerService);
+    app.useGlobalFilters(new GlobalExceptionFilter(structuredLoggerService));
+  } else {
+    // Usar un filtro global básico para los errores si estamos en modo simple
+    app.useGlobalFilters(
+      new GlobalExceptionFilter(new Logger('GlobalExceptionFilter')),
+    );
+  }
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 4000); // Use config service for port
 
-  // Use the structuredLoggerService for bootstrap logging
-  structuredLoggerService.log(`Aplicación iniciando en puerto ${port}`, 'Bootstrap', {
-    port,
-    nodeEnv: process.env.NODE_ENV,
-  });
+  // Usar el logger adecuado según el modo
+  const logger = isSimpleLogging
+    ? new Logger('Bootstrap')
+    : await app.resolve(StructuredLoggerService);
+  logger.log(`Aplicación iniciando en puerto ${port}`);
 
   const isProduction = process.env.NODE_ENV === 'production';
 
@@ -101,15 +113,7 @@ async function bootstrap() {
 
   await app.listen(port);
 
-  structuredLoggerService.log(
-    `Aplicación iniciada correctamente en puerto ${port}`,
-    'Bootstrap',
-    {
-      startupTime: new Date().toISOString(),
-      // Ensure swaggerUrl is correctly formed if port comes from config
-      swaggerUrl: !isProduction ? `http://localhost:${port}/api` : undefined,
-    },
-  );
+  logger.log(`🚀 Novack API is up and running on port ${port}`);
 }
 
 bootstrap().catch((err) => {

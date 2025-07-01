@@ -16,11 +16,14 @@ RUN npm install -g pnpm
 RUN pnpm install
 
 # Explicitly install typeorm and rebuild bcrypt
-RUN pnpm add typeorm@0.3.24 pg 
+RUN pnpm add typeorm@0.3.24 pg twilio 
 RUN cd node_modules/bcrypt && npm rebuild bcrypt --build-from-source
 
 # Copy source code
 COPY . .
+
+# Build the TypeScript project
+RUN pnpm run build
 
 # Create logs directory
 RUN mkdir -p /usr/src/app/logs
@@ -30,4 +33,4 @@ RUN chmod 777 /usr/src/app/logs
 EXPOSE 4000
 
 # Start the application
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]

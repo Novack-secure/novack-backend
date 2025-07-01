@@ -39,17 +39,17 @@ describe('JWT Functionality', () => {
     const payload = {
       sub: 'user-123',
       email: 'test@example.com',
-      roles: ['admin']
+      roles: ['admin'],
     };
 
     // Generar token
     const token = jwtService.sign(payload);
     expect(token).toBeDefined();
     expect(typeof token).toBe('string');
-    
+
     // Verificar token
     const decoded = jwtService.verify(token);
-    
+
     // Verificar que el token contenga las claims correctas
     expect(decoded).toBeDefined();
     expect(decoded.sub).toBe(payload.sub);
@@ -57,7 +57,7 @@ describe('JWT Functionality', () => {
     expect(decoded.roles).toEqual(payload.roles);
     expect(decoded.iss).toBe(process.env.JWT_ISSUER);
     expect(decoded.aud).toBe(process.env.JWT_AUDIENCE);
-    
+
     // Verificar que el token tenga expiración
     expect(decoded.exp).toBeDefined();
     expect(decoded.iat).toBeDefined();
@@ -65,9 +65,9 @@ describe('JWT Functionality', () => {
 
   it('should throw error when token is invalid', () => {
     const invalidToken = 'invalid.token.here';
-    
+
     expect(() => {
       jwtService.verify(invalidToken);
     }).toThrow();
   });
-}); 
+});

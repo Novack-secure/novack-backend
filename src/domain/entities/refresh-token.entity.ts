@@ -5,7 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
-  Index
+  Index,
 } from 'typeorm';
 import { Employee } from './employee.entity';
 
@@ -42,4 +42,4 @@ export class RefreshToken {
 
   @Column({ name: 'device_info', type: 'json', nullable: true })
   device_info: Record<string, any>;
-} 
+}

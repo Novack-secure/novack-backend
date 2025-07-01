@@ -2,11 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from '../auth.controller';
 import { AuthService } from 'src/application/services/auth.service';
 import { UnauthorizedException } from '@nestjs/common';
-import { LoginDto, LoginSmsVerifyDto } from 'src/application/dtos/auth/login.dto'; // LoginSmsVerifyDto was also missing
+import {
+  LoginDto,
+  LoginSmsVerifyDto,
+} from 'src/application/dtos/auth/login.dto'; // LoginSmsVerifyDto was also missing
 import { RefreshTokenDto } from 'src/application/dtos/auth/refresh-token.dto';
 import { LogoutDto } from 'src/application/dtos/auth/logout.dto';
 import { AuthenticateEmployeeUseCase } from 'src/application/use-cases/auth/authenticate-employee.use-case';
-
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -20,14 +22,16 @@ describe('AuthController', () => {
     cookies: {},
     signedCookies: {},
     get: jest.fn((name: string) => mockRequestBase.headers[name.toLowerCase()]), // Allow access to headers via get
-    header: jest.fn((name: string) => mockRequestBase.headers[name.toLowerCase()]),
+    header: jest.fn(
+      (name: string) => mockRequestBase.headers[name.toLowerCase()],
+    ),
     accepts: jest.fn(),
     is: jest.fn(),
     params: {},
     query: {},
     body: {},
     method: 'POST', // Default method
-    url: '/',         // Default URL
+    url: '/', // Default URL
     route: { path: '/' },
     user: null,
     app: {} as any,
@@ -54,7 +58,6 @@ describe('AuthController', () => {
     flash: jest.fn(),
   } as any; // Cast to any for simplicity in test setup
 
-
   beforeEach(async () => {
     mockAuthService = {
       login: jest.fn(),
@@ -71,7 +74,10 @@ describe('AuthController', () => {
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: mockAuthService },
-        { provide: AuthenticateEmployeeUseCase, useValue: mockAuthenticateEmployeeUseCase },
+        {
+          provide: AuthenticateEmployeeUseCase,
+          useValue: mockAuthenticateEmployeeUseCase,
+        },
       ],
     }).compile();
 
@@ -103,23 +109,42 @@ describe('AuthController', () => {
     };
 
     it('should return token and employee data on successful login', async () => {
-      (mockAuthenticateEmployeeUseCase.execute as jest.Mock).mockResolvedValueOnce(mockResponse);
-      const req = { ...mockRequestBase, body: loginDto, url: '/auth/login', method: 'POST' };
+      (
+        mockAuthenticateEmployeeUseCase.execute as jest.Mock
+      ).mockResolvedValueOnce(mockResponse);
+      const req = {
+        ...mockRequestBase,
+        body: loginDto,
+        url: '/auth/login',
+        method: 'POST',
+      };
 
       const result = await controller.login(loginDto, req);
 
       expect(result).toEqual(mockResponse);
-      expect(mockAuthenticateEmployeeUseCase.execute).toHaveBeenCalledWith(loginDto, req);
+      expect(mockAuthenticateEmployeeUseCase.execute).toHaveBeenCalledWith(
+        loginDto,
+        req,
+      );
     });
 
     it('should throw UnauthorizedException on login failure', async () => {
       const errorMessage = 'Credenciales inválidas';
       const error = new UnauthorizedException(errorMessage);
-      (mockAuthenticateEmployeeUseCase.execute as jest.Mock).mockRejectedValueOnce(error);
-      const req = { ...mockRequestBase, body: loginDto, url: '/auth/login', method: 'POST' };
+      (
+        mockAuthenticateEmployeeUseCase.execute as jest.Mock
+      ).mockRejectedValueOnce(error);
+      const req = {
+        ...mockRequestBase,
+        body: loginDto,
+        url: '/auth/login',
+        method: 'POST',
+      };
 
       // En este caso, necesitamos usar un único expect y guardar la promesa para que el test no la resuelva antes de tiempo
-      await expect(controller.login(loginDto, req)).rejects.toThrow(UnauthorizedException);
+      await expect(controller.login(loginDto, req)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -138,14 +163,23 @@ describe('AuthController', () => {
     };
 
     it('should return new tokens on successful refresh', async () => {
-      (mockAuthService.refreshToken as jest.Mock).mockResolvedValueOnce(mockResponse);
-      const req = { ...mockRequestBase, body: refreshTokenDto, url: '/auth/refresh', method: 'POST' };
-
+      (mockAuthService.refreshToken as jest.Mock).mockResolvedValueOnce(
+        mockResponse,
+      );
+      const req = {
+        ...mockRequestBase,
+        body: refreshTokenDto,
+        url: '/auth/refresh',
+        method: 'POST',
+      };
 
       const result = await controller.refreshToken(refreshTokenDto, req);
 
       expect(result).toEqual(mockResponse);
-      expect(mockAuthService.refreshToken).toHaveBeenCalledWith(refreshTokenDto.refresh_token, req);
+      expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
+        refreshTokenDto.refresh_token,
+        req,
+      );
     });
   });
 
@@ -155,12 +189,16 @@ describe('AuthController', () => {
     };
 
     it('should successfully logout', async () => {
-      (mockAuthService.logout as jest.Mock).mockResolvedValueOnce({ message: 'Logged out successfully' });
+      (mockAuthService.logout as jest.Mock).mockResolvedValueOnce({
+        message: 'Logged out successfully',
+      });
 
       const result = await controller.logout(logoutDto);
 
       expect(result).toEqual({ message: 'Logged out successfully' });
-      expect(mockAuthService.logout).toHaveBeenCalledWith(logoutDto.refresh_token);
+      expect(mockAuthService.logout).toHaveBeenCalledWith(
+        logoutDto.refresh_token,
+      );
     });
   });
 });

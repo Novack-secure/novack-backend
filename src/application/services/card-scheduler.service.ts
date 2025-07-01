@@ -36,12 +36,14 @@ export class CardSchedulerService {
     const upcomingAppointments = await this.appointmentRepository.find({
       where: {
         check_in_time: Between(now, fifteenMinutesLater),
-        status: 'pendiente'
+        status: 'pendiente',
       },
-      relations: ['visitor', 'visitor.card']
+      relations: ['visitor', 'visitor.card'],
     });
 
-    this.logger.log(`Encontradas ${upcomingAppointments.length} citas próximas`);
+    this.logger.log(
+      `Encontradas ${upcomingAppointments.length} citas próximas`,
+    );
 
     // Procesar cada cita
     for (const appointment of upcomingAppointments) {
@@ -51,9 +53,14 @@ export class CardSchedulerService {
           const availableCards = await this.cardService.findAvailableCards();
 
           if (availableCards.length > 0) {
-            await this.cardService.assignToVisitor(availableCards[0].id, appointment.visitor.id);
-            this.logger.log(`Tarjeta ${availableCards[0].id} asignada automáticamente al visitante ${appointment.visitor.id}`);
-            
+            await this.cardService.assignToVisitor(
+              availableCards[0].id,
+              appointment.visitor.id,
+            );
+            this.logger.log(
+              `Tarjeta ${availableCards[0].id} asignada automáticamente al visitante ${appointment.visitor.id}`,
+            );
+
             // Actualizar el estado de la cita
             appointment.status = 'en_progreso';
             await this.appointmentRepository.save(appointment);
@@ -62,7 +69,9 @@ export class CardSchedulerService {
           }
         }
       } catch (error) {
-        this.logger.error(`Error al asignar tarjeta para la cita ${appointment.id}: ${error.message}`);
+        this.logger.error(
+          `Error al asignar tarjeta para la cita ${appointment.id}: ${error.message}`,
+        );
       }
     }
   }
@@ -86,25 +95,33 @@ export class CardSchedulerService {
       relations: ['visitor', 'visitor.card'],
     });
 
-    this.logger.log(`Encontradas ${completedAppointments.length} citas finalizadas`);
+    this.logger.log(
+      `Encontradas ${completedAppointments.length} citas finalizadas`,
+    );
 
     // Procesar cada cita
     for (const appointment of completedAppointments) {
       try {
         if (appointment.visitor && appointment.visitor.card) {
           // Liberar la tarjeta
-          await this.cardService.unassignFromVisitor(appointment.visitor.card.id);
-          this.logger.log(`Tarjeta ${appointment.visitor.card.id} liberada automáticamente del visitante ${appointment.visitor.id}`);
-          
+          await this.cardService.unassignFromVisitor(
+            appointment.visitor.card.id,
+          );
+          this.logger.log(
+            `Tarjeta ${appointment.visitor.card.id} liberada automáticamente del visitante ${appointment.visitor.id}`,
+          );
+
           // Actualizar estado de la cita y visitante
           appointment.status = 'completado';
           await this.appointmentRepository.save(appointment);
-          
+
           appointment.visitor.state = 'completado';
           await this.visitorRepository.save(appointment.visitor);
         }
       } catch (error) {
-        this.logger.error(`Error al liberar tarjeta para la cita ${appointment.id}: ${error.message}`);
+        this.logger.error(
+          `Error al liberar tarjeta para la cita ${appointment.id}: ${error.message}`,
+        );
       }
     }
   }
@@ -121,65 +138,78 @@ export class CardSchedulerService {
    * @param inUse Si la tarjeta está en uso (opcional)
    */
   async receiveCardLocation(
-    cardNumber: string, 
-    latitude: number, 
-    longitude: number, 
+    cardNumber: string,
+    latitude: number,
+    longitude: number,
     accuracy: number,
     companyId: string,
     batteryLevel?: number,
     signalStrength?: number,
-    inUse?: boolean
+    inUse?: boolean,
   ) {
     try {
       // Buscar la tarjeta por su número y empresa
       // Primero intentamos buscar la tarjeta específica de la empresa
-      this.logger.log(`Buscando tarjeta ${cardNumber} de la empresa ${companyId}`);
-      
+      this.logger.log(
+        `Buscando tarjeta ${cardNumber} de la empresa ${companyId}`,
+      );
+
       // Usamos additional_info de Card para almacenar datos como company_id
       // Nota: En una implementación completa, sería mejor tener una relación directa con una entidad Company
       let card = await this.cardRepository.findOne({
-        where: { 
+        where: {
           card_number: cardNumber,
           // Verificar si additional_info contiene el company_id correcto
         },
       });
 
       if (!card) {
-        this.logger.warn(`Tarjeta con número ${cardNumber} no encontrada, intentando crearla para la empresa ${companyId}`);
-        
+        this.logger.warn(
+          `Tarjeta con número ${cardNumber} no encontrada, intentando crearla para la empresa ${companyId}`,
+        );
+
         // Para este ejemplo, creamos automáticamente la tarjeta si no existe
         // En producción, deberías tener un proceso más controlado para la creación de tarjetas
         card = this.cardRepository.create({
           card_number: cardNumber,
           is_active: true,
-          additional_info: { 
+          additional_info: {
             company_id: companyId,
             last_battery_level: batteryLevel,
             last_signal_strength: signalStrength,
-            in_use: inUse || false
-          }
+            in_use: inUse || false,
+          },
         });
-        
+
         // Guardar la nueva tarjeta
         card = await this.cardRepository.save(card);
-        this.logger.log(`Tarjeta ${cardNumber} creada automáticamente para empresa ${companyId}`);
+        this.logger.log(
+          `Tarjeta ${cardNumber} creada automáticamente para empresa ${companyId}`,
+        );
       } else {
         // Actualizar información de la tarjeta existente
         if (!card.additional_info) {
           card.additional_info = {};
         }
-        
+
         // Asegurarnos de que pertenece a la empresa correcta
-        if (card.additional_info.company_id && card.additional_info.company_id !== companyId) {
-          this.logger.warn(`La tarjeta ${cardNumber} está asignada a otra empresa (${card.additional_info.company_id})`);
+        if (
+          card.additional_info.company_id &&
+          card.additional_info.company_id !== companyId
+        ) {
+          this.logger.warn(
+            `La tarjeta ${cardNumber} está asignada a otra empresa (${card.additional_info.company_id})`,
+          );
         }
-        
+
         // Actualizar información
         card.additional_info.company_id = companyId;
-        if (batteryLevel !== undefined) card.additional_info.last_battery_level = batteryLevel;
-        if (signalStrength !== undefined) card.additional_info.last_signal_strength = signalStrength;
+        if (batteryLevel !== undefined)
+          card.additional_info.last_battery_level = batteryLevel;
+        if (signalStrength !== undefined)
+          card.additional_info.last_signal_strength = signalStrength;
         if (inUse !== undefined) card.additional_info.in_use = inUse;
-        
+
         await this.cardRepository.save(card);
       }
 
@@ -187,14 +217,16 @@ export class CardSchedulerService {
       const location = await this.cardService.recordLocation(
         card.id,
         latitude,
-        longitude, 
-        accuracy
+        longitude,
+        accuracy,
       );
 
       // Añadir información adicional a la respuesta
-      this.logger.log(`Ubicación registrada para tarjeta ${cardNumber} (Empresa: ${companyId}): [${latitude}, ${longitude}]`);
-      return { 
-        success: true, 
+      this.logger.log(
+        `Ubicación registrada para tarjeta ${cardNumber} (Empresa: ${companyId}): [${latitude}, ${longitude}]`,
+      );
+      return {
+        success: true,
         location,
         company_id: companyId,
         card_info: {
@@ -203,11 +235,13 @@ export class CardSchedulerService {
           battery_level: batteryLevel,
           signal_strength: signalStrength,
           in_use: inUse,
-        }
+        },
       };
     } catch (error) {
-      this.logger.error(`Error al registrar ubicación de tarjeta ${cardNumber} de empresa ${companyId}: ${error.message}`);
+      this.logger.error(
+        `Error al registrar ubicación de tarjeta ${cardNumber} de empresa ${companyId}: ${error.message}`,
+      );
       return { success: false, message: error.message };
     }
   }
-} 
+}

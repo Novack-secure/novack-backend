@@ -47,8 +47,11 @@ export class TokenService {
     const refreshTokenString = this.generateRefreshTokenString();
     const refreshTokenExpiry = new Date();
     refreshTokenExpiry.setDate(
-      refreshTokenExpiry.getDate() + 
-      parseInt(this.configService.get('JWT_REFRESH_EXPIRATION_DAYS', '7'), 10)
+      refreshTokenExpiry.getDate() +
+        parseInt(
+          this.configService.get('JWT_REFRESH_EXPIRATION_DAYS', '7'),
+          10,
+        ),
     );
 
     // Información de dispositivo y cliente para auditoria
@@ -87,7 +90,7 @@ export class TokenService {
    */
   async refreshAccessToken(refreshToken: string, request?: Request) {
     const hashedToken = this.hashToken(refreshToken);
-    
+
     const storedToken = await this.refreshTokenRepository.findOne({
       where: { token: hashedToken },
       relations: ['employee'],
@@ -101,7 +104,9 @@ export class TokenService {
     if (storedToken.is_revoked) {
       // Posible reutilización de token, revocar todos los tokens del usuario
       await this.revokeAllUserTokens(storedToken.employee_id);
-      throw new UnauthorizedException('Token de refresco revocado, posible reutilización detectada');
+      throw new UnauthorizedException(
+        'Token de refresco revocado, posible reutilización detectada',
+      );
     }
 
     if (storedToken.expires_at < new Date()) {
@@ -109,10 +114,9 @@ export class TokenService {
     }
 
     // Revocamos el token actual para implementar rotación de tokens
-    await this.refreshTokenRepository.update(
-      storedToken.id,
-      { is_revoked: true }
-    );
+    await this.refreshTokenRepository.update(storedToken.id, {
+      is_revoked: true,
+    });
 
     // Generar nuevos tokens
     return this.generateTokens(storedToken.employee, request);
@@ -124,15 +128,15 @@ export class TokenService {
    */
   async revokeToken(refreshToken: string) {
     const hashedToken = this.hashToken(refreshToken);
-    
+
     const result = await this.refreshTokenRepository.update(
       { token: hashedToken, is_revoked: false },
-      { is_revoked: true }
+      { is_revoked: true },
     );
 
     return result.affected > 0;
   }
-  
+
   /**
    * Revoca todos los tokens de un usuario
    * @param employeeId ID del usuario
@@ -140,7 +144,7 @@ export class TokenService {
   async revokeAllUserTokens(employeeId: string) {
     await this.refreshTokenRepository.update(
       { employee_id: employeeId, is_revoked: false },
-      { is_revoked: true }
+      { is_revoked: true },
     );
   }
 
@@ -150,7 +154,7 @@ export class TokenService {
   private generateRefreshTokenString(): string {
     return uuidv4() + crypto.randomBytes(40).toString('hex');
   }
-  
+
   /**
    * Hash del token para almacenamiento seguro
    * @param token Token a hashear
@@ -171,19 +175,19 @@ export class TokenService {
   async validateToken(token: string) {
     try {
       const payload = await this.jwtService.verifyAsync(token);
-      
+
       // Verificación adicional: comprobar que el usuario sigue existiendo
       const employeeExists = await this.employeeRepository.exists({
-        where: { id: payload.sub }
+        where: { id: payload.sub },
       });
-      
+
       if (!employeeExists) {
         throw new UnauthorizedException('Usuario no existe');
       }
-      
+
       return payload;
     } catch (error) {
       throw new UnauthorizedException('Token inválido o expirado');
     }
   }
-} 
+}

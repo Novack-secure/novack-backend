@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module'; // Adjust path if main AppModule is elsewhere
 import { ConfigService } from '@nestjs/config'; // For port, if needed
@@ -26,14 +30,16 @@ describe('AppController (E2E)', () => {
     app.use(cookieParser(configService.get<string>('COOKIE_SECRET')));
 
     // 3. Global Pipes (ValidationPipe)
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: {
+          enableImplicitConversion: true,
+        },
+      }),
+    );
 
     // 4. API Versioning (if used in main.ts)
     // Example:
@@ -50,7 +56,6 @@ describe('AppController (E2E)', () => {
     //   // ... other CORS options from main.ts
     // });
 
-
     await app.init();
   });
 
@@ -58,7 +63,7 @@ describe('AppController (E2E)', () => {
     return request(app.getHttpServer())
       .get('/health') // Standard health check endpoint
       .expect(200)
-      .then(response => {
+      .then((response) => {
         // Default NestJS HealthModule structure
         expect(response.body).toBeInstanceOf(Object);
         expect(response.body.status).toEqual('ok'); // Common status
@@ -71,9 +76,7 @@ describe('AppController (E2E)', () => {
   it('/ (GET) - Root path should return 404 if not defined', () => {
     // This test assumes your app does not have a GET handler for '/'.
     // If it does, adjust the expected status code and response.
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(404);
+    return request(app.getHttpServer()).get('/').expect(404);
   });
 
   // Example of testing a non-existent route

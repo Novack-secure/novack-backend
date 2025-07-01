@@ -45,8 +45,18 @@ describe('GetAllEmployeesUseCase', () => {
 
   describe('execute', () => {
     const mockEmployeesResult: Employee[] = [
-      { id: 'emp-uuid-1', first_name: 'Employee', last_name: 'One', email: 'one@example.com' } as Employee,
-      { id: 'emp-uuid-2', first_name: 'Employee', last_name: 'Two', email: 'two@example.com' } as Employee,
+      {
+        id: 'emp-uuid-1',
+        first_name: 'Employee',
+        last_name: 'One',
+        email: 'one@example.com',
+      } as Employee,
+      {
+        id: 'emp-uuid-2',
+        first_name: 'Employee',
+        last_name: 'Two',
+        email: 'two@example.com',
+      } as Employee,
     ];
 
     it('should return an array of employees if found', async () => {
@@ -56,11 +66,13 @@ describe('GetAllEmployeesUseCase', () => {
 
       expect(result).toEqual(mockEmployeesResult);
       expect(repository.findAll).toHaveBeenCalledTimes(1);
-      expect(logger.log).toHaveBeenCalledWith('Attempting to fetch all employees.');
+      expect(logger.log).toHaveBeenCalledWith(
+        'Attempting to fetch all employees.',
+      );
       expect(logger.log).toHaveBeenCalledWith(
         `Successfully fetched ${mockEmployeesResult.length} employees.`,
         undefined, // Added undefined for context
-        { count: mockEmployeesResult.length }
+        { count: mockEmployeesResult.length },
       );
     });
 
@@ -71,11 +83,13 @@ describe('GetAllEmployeesUseCase', () => {
 
       expect(result).toEqual([]);
       expect(repository.findAll).toHaveBeenCalledTimes(1);
-      expect(logger.log).toHaveBeenCalledWith('Attempting to fetch all employees.');
+      expect(logger.log).toHaveBeenCalledWith(
+        'Attempting to fetch all employees.',
+      );
       expect(logger.log).toHaveBeenCalledWith(
         'Successfully fetched 0 employees.',
         undefined, // Added undefined for context
-        { count: 0 }
+        { count: 0 },
       );
     });
 
@@ -83,16 +97,18 @@ describe('GetAllEmployeesUseCase', () => {
       mockEmployeeRepository.findAll.mockResolvedValue([]); // Outcome doesn't matter for this test
       await useCase.execute();
       // For a single-argument call, the check is fine as is.
-      expect(logger.log).toHaveBeenCalledWith('Attempting to fetch all employees.');
+      expect(logger.log).toHaveBeenCalledWith(
+        'Attempting to fetch all employees.',
+      );
     });
 
     it('should propagate errors from the repository.findAll method', async () => {
       const errorMessage = 'Database connection error during findAll';
       // Ensure multiple calls to execute will get a fresh rejection for each
       mockEmployeeRepository.findAll.mockClear();
-      mockEmployeeRepository.findAll.mockRejectedValueOnce(new Error(errorMessage))
-                                  .mockRejectedValueOnce(new Error(errorMessage));
-
+      mockEmployeeRepository.findAll
+        .mockRejectedValueOnce(new Error(errorMessage))
+        .mockRejectedValueOnce(new Error(errorMessage));
 
       await expect(useCase.execute()).rejects.toThrow(Error);
       try {

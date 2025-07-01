@@ -5,12 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { Employee } from '../../domain/entities';
 import { EmployeeCredentials } from '../../domain/entities/employee-credentials.entity';
+import { RefreshToken } from '../../domain/entities';
 import { AuthController } from '../../interface/controllers/auth.controller';
 import { JwtStrategy } from '../strategies/jwt.strategy';
 import { AuthenticateEmployeeUseCase } from '../use-cases/auth/authenticate-employee.use-case';
 import { EmployeeRepository } from '../../infrastructure/repositories/employee.repository';
 import { TokenModule } from './token.module';
 import { AuthService } from '../services/auth.service';
+import { EmployeeModule } from './employee.module';
 import { SmsService } from '../services/sms.service';
 
 @Module({
@@ -23,8 +25,9 @@ import { SmsService } from '../services/sms.service';
         signOptions: { expiresIn: '1d' },
       }),
     }),
-    TypeOrmModule.forFeature([Employee, EmployeeCredentials]),
+    TypeOrmModule.forFeature([Employee, EmployeeCredentials, RefreshToken]),
     TokenModule,
+    EmployeeModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -35,10 +38,9 @@ import { SmsService } from '../services/sms.service';
     EmployeeRepository,
     {
       provide: 'IEmployeeRepository',
-      useClass: EmployeeRepository
-    }
+      useClass: EmployeeRepository,
+    },
   ],
-  exports: [JwtStrategy, JwtModule, AuthService]
+  exports: [JwtStrategy, JwtModule, AuthService],
 })
 export class AuthModule {}
-

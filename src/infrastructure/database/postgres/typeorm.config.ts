@@ -16,4 +16,4 @@ export default new DataSource({
   entities: ['src/domain/entities/**/*.entity.ts'],
   migrations: ['src/infrastructure/database/migrations/*.ts'],
   migrationsTableName: 'migrations',
-}); 
+});

@@ -51,14 +51,18 @@ export interface ISupplierRepository {
    * @param subscription The supplier subscription entity to save.
    * @returns The saved supplier subscription entity.
    */
-  saveSubscription(subscription: SupplierSubscription): Promise<SupplierSubscription>;
+  saveSubscription(
+    subscription: SupplierSubscription,
+  ): Promise<SupplierSubscription>;
 
   /**
    * Creates a new supplier subscription instance.
    * @param createSubscriptionData Partial data for the subscription.
    * @returns A new supplier subscription instance.
    */
-  createSubscription(createSubscriptionData: Partial<SupplierSubscription>): SupplierSubscription;
+  createSubscription(
+    createSubscriptionData: Partial<SupplierSubscription>,
+  ): SupplierSubscription;
 }
 
 export const ISupplierRepository = Symbol('ISupplierRepository');

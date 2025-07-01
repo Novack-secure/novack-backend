@@ -1,5 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { S3Client, PutObjectCommand, ListBucketsCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  ListBucketsCommand,
+} from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
@@ -17,33 +21,44 @@ export class FileStorageService implements OnModuleInit {
   constructor(private readonly configService: ConfigService) {
     // --- Configuración de AWS S3 ---
     this.region = this.configService.get<string>('AWS_REGION') || 'us-east-1';
-    this.useFallbackStorage = this.configService.get<string>('USE_LOCAL_STORAGE') === 'true';
-    this.fallbackDir = this.configService.get<string>('LOCAL_STORAGE_PATH') || 'storage/uploads';
-    
+    this.useFallbackStorage =
+      this.configService.get<string>('USE_LOCAL_STORAGE') === 'true';
+    this.fallbackDir =
+      this.configService.get<string>('LOCAL_STORAGE_PATH') || 'storage/uploads';
+
     // Configurar explícitamente las credenciales de AWS
     const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
-    const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
-    
+    const secretAccessKey = this.configService.get<string>(
+      'AWS_SECRET_ACCESS_KEY',
+    );
+
     if (!accessKeyId || !secretAccessKey) {
-      this.logger.warn('AWS_ACCESS_KEY_ID o AWS_SECRET_ACCESS_KEY no están configurados. Se usará almacenamiento local de respaldo.');
+      this.logger.warn(
+        'AWS_ACCESS_KEY_ID o AWS_SECRET_ACCESS_KEY no están configurados. Se usará almacenamiento local de respaldo.',
+      );
     }
-    
+
     this.s3Client = new S3Client({
       region: this.region,
-      credentials: accessKeyId && secretAccessKey ? {
-        accessKeyId,
-        secretAccessKey,
-      } : undefined,
+      credentials:
+        accessKeyId && secretAccessKey
+          ? {
+              accessKeyId,
+              secretAccessKey,
+            }
+          : undefined,
     });
-    
-    this.logger.log(`Servicio de almacenamiento inicializado. Región S3: ${this.region}`);
-    
+
+    this.logger.log(
+      `Servicio de almacenamiento inicializado. Región S3: ${this.region}`,
+    );
+
     // Crear el directorio de respaldo si no existe
     if (this.useFallbackStorage || !accessKeyId || !secretAccessKey) {
       this.ensureFallbackDirectoryExists();
     }
   }
-  
+
   async onModuleInit() {
     // Verificar la conexión con S3 al iniciar el módulo
     if (!this.useFallbackStorage) {
@@ -54,20 +69,27 @@ export class FileStorageService implements OnModuleInit {
         this.logger.log('Conexión exitosa con AWS S3');
       } catch (error) {
         this.s3Available = false;
-        this.logger.error('No se pudo conectar con AWS S3. Se usará almacenamiento local:', error.message);
+        this.logger.error(
+          'No se pudo conectar con AWS S3. Se usará almacenamiento local:',
+          error.message,
+        );
         this.ensureFallbackDirectoryExists();
       }
     }
   }
-  
+
   private ensureFallbackDirectoryExists() {
     const fullPath = path.resolve(process.cwd(), this.fallbackDir);
     if (!fs.existsSync(fullPath)) {
       try {
         fs.mkdirSync(fullPath, { recursive: true });
-        this.logger.log(`Directorio de almacenamiento local creado: ${fullPath}`);
+        this.logger.log(
+          `Directorio de almacenamiento local creado: ${fullPath}`,
+        );
       } catch (error) {
-        this.logger.error(`Error al crear directorio de almacenamiento local: ${error.message}`);
+        this.logger.error(
+          `Error al crear directorio de almacenamiento local: ${error.message}`,
+        );
       }
     }
   }
@@ -89,20 +111,32 @@ export class FileStorageService implements OnModuleInit {
     destinationPath: string = '',
   ): Promise<string> {
     if (!bucketName && this.s3Available) {
-        throw new Error('El nombre del bucket no fue proporcionado para la subida.');
+      throw new Error(
+        'El nombre del bucket no fue proporcionado para la subida.',
+      );
     }
 
     const fileExtension = originalName.split('.').pop() || '';
     const uniqueFileName = `${randomUUID()}.${fileExtension}`;
-    
+
     // Si S3 está disponible y no se ha especificado usar almacenamiento local
     if (this.s3Available && !this.useFallbackStorage) {
-      return this.uploadToS3(bucketName, fileBuffer, uniqueFileName, mimeType, destinationPath);
+      return this.uploadToS3(
+        bucketName,
+        fileBuffer,
+        uniqueFileName,
+        mimeType,
+        destinationPath,
+      );
     } else {
-      return this.uploadToLocalStorage(fileBuffer, uniqueFileName, destinationPath);
+      return this.uploadToLocalStorage(
+        fileBuffer,
+        uniqueFileName,
+        destinationPath,
+      );
     }
   }
-  
+
   /**
    * Sube un archivo a AWS S3
    */
@@ -114,7 +148,9 @@ export class FileStorageService implements OnModuleInit {
     destinationPath: string,
   ): Promise<string> {
     const s3Key = `${destinationPath}${fileName}`;
-    this.logger.log(`Subiendo archivo a S3 Bucket: ${bucketName}, Key: ${s3Key} (MIME: ${mimeType})`);
+    this.logger.log(
+      `Subiendo archivo a S3 Bucket: ${bucketName}, Key: ${s3Key} (MIME: ${mimeType})`,
+    );
 
     const command = new PutObjectCommand({
       Bucket: bucketName,
@@ -134,20 +170,27 @@ export class FileStorageService implements OnModuleInit {
     } catch (error) {
       // No registrar como error si estamos en ambiente de pruebas
       const isRunningInJest = typeof process.env.JEST_WORKER_ID !== 'undefined';
-      
+
       if (isRunningInJest) {
         // En pruebas, usar un log de nivel inferior o ninguno para evitar mensajes de error en los logs de prueba
-        this.logger.debug(`Prueba simulando error de S3 para Bucket: ${bucketName}, Key: ${s3Key}`);
+        this.logger.debug(
+          `Prueba simulando error de S3 para Bucket: ${bucketName}, Key: ${s3Key}`,
+        );
       } else {
-        this.logger.error(`Error al subir archivo a S3 (Bucket: ${bucketName}, Key: ${s3Key}):`, error);
+        this.logger.error(
+          `Error al subir archivo a S3 (Bucket: ${bucketName}, Key: ${s3Key}):`,
+          error,
+        );
       }
-      
+
       // Si falla S3, intentar subir al almacenamiento local como respaldo
-      this.logger.log('Intentando subir al almacenamiento local como respaldo...');
+      this.logger.log(
+        'Intentando subir al almacenamiento local como respaldo...',
+      );
       return this.uploadToLocalStorage(fileBuffer, fileName, destinationPath);
     }
   }
-  
+
   /**
    * Guarda un archivo en el almacenamiento local de respaldo
    */
@@ -157,24 +200,32 @@ export class FileStorageService implements OnModuleInit {
     destinationPath: string,
   ): Promise<string> {
     // Crear subdirectorio si es necesario
-    const subDir = path.resolve(process.cwd(), this.fallbackDir, destinationPath);
+    const subDir = path.resolve(
+      process.cwd(),
+      this.fallbackDir,
+      destinationPath,
+    );
     if (!fs.existsSync(subDir)) {
       fs.mkdirSync(subDir, { recursive: true });
     }
-    
+
     const filePath = path.resolve(subDir, fileName);
-    
+
     try {
       fs.writeFileSync(filePath, fileBuffer);
       this.logger.log(`Archivo guardado localmente en: ${filePath}`);
-      
+
       // Devolver una ruta relativa para que sea accesible desde la aplicación
       // Esta URL dependerá de cómo expongas los archivos estáticos en tu aplicación
       const relativePath = path.join('uploads', destinationPath, fileName);
       return `/storage/${relativePath}`;
     } catch (error) {
-      this.logger.error(`Error al guardar archivo localmente: ${error.message}`);
-      throw new Error(`No se pudo guardar el archivo en el almacenamiento local: ${error.message}`);
+      this.logger.error(
+        `Error al guardar archivo localmente: ${error.message}`,
+      );
+      throw new Error(
+        `No se pudo guardar el archivo en el almacenamiento local: ${error.message}`,
+      );
     }
   }
-} 
+}

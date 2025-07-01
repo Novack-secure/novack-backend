@@ -17,10 +17,14 @@ export class SmsService {
 
     const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID');
     const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN');
-    this.twilioFromPhoneNumber = this.configService.get<string>('TWILIO_FROM_PHONE_NUMBER');
+    this.twilioFromPhoneNumber = this.configService.get<string>(
+      'TWILIO_FROM_PHONE_NUMBER',
+    );
 
     if (!accountSid || !authToken || !this.twilioFromPhoneNumber) {
-      this.logger.error('Twilio configuration is incomplete (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_FROM_PHONE_NUMBER is missing). SMS sending will be disabled.');
+      this.logger.error(
+        'Twilio configuration is incomplete (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_FROM_PHONE_NUMBER is missing). SMS sending will be disabled.',
+      );
       // No Twilio client initialized, isInitialized remains false
     } else {
       try {
@@ -28,7 +32,11 @@ export class SmsService {
         this.isInitialized = true;
         this.logger.log('Twilio client initialized successfully.');
       } catch (error) {
-        this.logger.error('Failed to initialize Twilio client', undefined, JSON.stringify({ error: error.message }));
+        this.logger.error(
+          'Failed to initialize Twilio client',
+          undefined,
+          JSON.stringify({ error: error.message }),
+        );
         // isInitialized remains false
       }
     }
@@ -41,9 +49,17 @@ export class SmsService {
    * @throws InternalServerErrorException if SMS sending fails or Twilio client is not initialized.
    */
   async sendOtp(phoneNumber: string, otp: string): Promise<void> {
-    if (!this.isInitialized || !this.twilioClient || !this.twilioFromPhoneNumber) {
-      this.logger.error('Twilio client not initialized or configuration missing. Cannot send OTP SMS.');
-      throw new InternalServerErrorException('SMS service is not configured properly.');
+    if (
+      !this.isInitialized ||
+      !this.twilioClient ||
+      !this.twilioFromPhoneNumber
+    ) {
+      this.logger.error(
+        'Twilio client not initialized or configuration missing. Cannot send OTP SMS.',
+      );
+      throw new InternalServerErrorException(
+        'SMS service is not configured properly.',
+      );
     }
 
     const messageBody = `Your SP-CEDES OTP code is: ${otp}. This code will expire in 10 minutes.`;
@@ -54,15 +70,23 @@ export class SmsService {
         from: this.twilioFromPhoneNumber,
         body: messageBody,
       });
-      this.logger.log('OTP SMS sent successfully', undefined, JSON.stringify({ to: phoneNumber }));
+      this.logger.log(
+        'OTP SMS sent successfully',
+        undefined,
+        JSON.stringify({ to: phoneNumber }),
+      );
     } catch (error) {
-      this.logger.error('Failed to send OTP SMS via Twilio', undefined, JSON.stringify({
-        to: phoneNumber,
-        // Avoid logging full error object if it contains sensitive Twilio details in some cases
-        // Log specific parts like error.message, error.code if available
-        errorMessage: error.message,
-        errorCode: error.code,
-      }));
+      this.logger.error(
+        'Failed to send OTP SMS via Twilio',
+        undefined,
+        JSON.stringify({
+          to: phoneNumber,
+          // Avoid logging full error object if it contains sensitive Twilio details in some cases
+          // Log specific parts like error.message, error.code if available
+          errorMessage: error.message,
+          errorCode: error.code,
+        }),
+      );
       throw new InternalServerErrorException('Failed to send OTP SMS.');
     }
   }

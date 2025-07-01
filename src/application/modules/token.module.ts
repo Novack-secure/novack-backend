@@ -21,4 +21,4 @@ import { Employee } from '../../domain/entities';
   providers: [TokenService],
   exports: [TokenService, JwtModule],
 })
-export class TokenModule {} 
+export class TokenModule {}

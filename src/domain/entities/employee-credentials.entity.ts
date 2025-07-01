@@ -1,12 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Employee } from './employee.entity';
-
-interface BackupCode {
-  code: string;
-  created_at: string;
-  used: boolean;
-  used_at?: string;
-}
 
 @Entity('employee_credentials')
 export class EmployeeCredentials {
@@ -22,8 +21,25 @@ export class EmployeeCredentials {
   @Column({ default: false })
   two_factor_enabled: boolean;
 
-  @Column('json', { nullable: true })
-  backup_codes?: BackupCode[];
+  @Column({ type: 'jsonb', nullable: true })
+  backup_codes?: {
+    code: string;
+    used: boolean;
+    created_at: string;
+    used_at?: string;
+  }[];
+
+  @Column({ nullable: true })
+  sms_otp_code?: string;
+
+  @Column({ nullable: true })
+  sms_otp_code_expires_at?: Date;
+
+  @Column({ default: false })
+  phone_number_verified: boolean;
+
+  @Column({ default: false })
+  is_sms_2fa_enabled: boolean;
 
   @Column({ nullable: true })
   reset_token?: string;
@@ -37,20 +53,9 @@ export class EmployeeCredentials {
   @Column({ default: false })
   is_email_verified: boolean;
 
-  // SMS based 2FA fields
-  @Column({ default: false })
-  phone_number_verified: boolean;
-
-  @Column({ default: false })
-  is_sms_2fa_enabled: boolean;
-
-  @Column({ type: 'varchar', nullable: true, length: 10 }) // Adjust length as appropriate for OTP
-  sms_otp_code: string | null;
-
-  @Column({ type: 'timestamp', nullable: true })
-  sms_otp_code_expires_at: Date | null;
-
-  @OneToOne(() => Employee, employee => employee.credentials, { onDelete: 'CASCADE' })
+  @OneToOne(() => Employee, (employee) => employee.credentials, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn()
   employee: Employee;
 
@@ -59,4 +64,10 @@ export class EmployeeCredentials {
 
   @Column({ nullable: true })
   last_login?: Date;
-} 
+
+  @Column({ type: 'int', default: 0 })
+  login_attempts?: number;
+
+  @Column({ nullable: true })
+  locked_until?: Date;
+}

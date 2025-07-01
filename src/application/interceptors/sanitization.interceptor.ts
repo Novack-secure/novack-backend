@@ -1,4 +1,9 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as sanitizeHtml from 'sanitize-html';
@@ -17,7 +22,7 @@ export class SanitizationInterceptor implements NestInterceptor {
    */
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    
+
     if (request.body) {
       request.body = this.sanitizeObject(request.body);
     }
@@ -66,8 +71,8 @@ export class SanitizationInterceptor implements NestInterceptor {
       allowedTags: [], // No permitir ninguna etiqueta HTML
       allowedAttributes: {}, // No permitir ningún atributo
       parser: {
-        decodeEntities: true
-      }
+        decodeEntities: true,
+      },
     });
   }
-} 
+}

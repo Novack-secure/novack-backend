@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { Employee } from './employee.entity';
 import { Visitor } from './visitor.entity';
@@ -60,9 +61,10 @@ export class Supplier {
   @OneToMany(() => Card, (card) => card.supplier)
   cards: Card[];
 
-  @OneToMany(() => Appointment, appointment => appointment.supplier)
+  @OneToMany(() => Appointment, (appointment) => appointment.supplier)
   appointments: Appointment[];
 
-  // Relación con SupplierSubscription - sin decorador para evitar referencias circulares
-  subscription?: SupplierSubscription;
+  // Relación con SupplierSubscription
+  @OneToOne(() => SupplierSubscription, (subscription) => subscription.supplier)
+  subscription: SupplierSubscription;
 }

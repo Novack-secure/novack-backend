@@ -10,12 +10,12 @@ import * as CryptoJS from 'crypto-js';
 export class EncryptionService {
   private readonly encryptionKey: string;
   private readonly ivSize = 16; // 128 bits
-  
+
   constructor(private readonly configService: ConfigService) {
     // Obtener la clave de cifrado del entorno o usar una por defecto (solo para desarrollo)
     this.encryptionKey = this.configService.get<string>(
-      'ENCRYPTION_KEY', 
-      'esta_clave_debe_cambiarse_en_produccion_con_32_bytes'
+      'ENCRYPTION_KEY',
+      'esta_clave_debe_cambiarse_en_produccion_con_32_bytes',
     );
   }
 
@@ -26,27 +26,30 @@ export class EncryptionService {
    */
   encrypt(value: string | object): string {
     if (!value) return null;
-    
+
     // Convertir objetos a JSON
-    const valueToEncrypt = typeof value === 'object' ? JSON.stringify(value) : value;
-    
+    const valueToEncrypt =
+      typeof value === 'object' ? JSON.stringify(value) : value;
+
     // Generar un IV aleatorio
     const iv = CryptoJS.lib.WordArray.random(this.ivSize);
-    
+
     // Cifrar con AES modo CBC
     const encrypted = CryptoJS.AES.encrypt(
-      valueToEncrypt, 
-      CryptoJS.enc.Utf8.parse(this.encryptionKey), 
+      valueToEncrypt,
+      CryptoJS.enc.Utf8.parse(this.encryptionKey),
       {
         iv: iv,
         padding: CryptoJS.pad.Pkcs7,
-        mode: CryptoJS.mode.CBC
-      }
+        mode: CryptoJS.mode.CBC,
+      },
     );
-    
+
     // Concatenar IV y datos cifrados
-    const result = iv.concat(encrypted.ciphertext).toString(CryptoJS.enc.Base64);
-    
+    const result = iv
+      .concat(encrypted.ciphertext)
+      .toString(CryptoJS.enc.Base64);
+
     return result;
   }
 
@@ -58,20 +61,20 @@ export class EncryptionService {
    */
   decrypt(encryptedValue: string, isObject = false): string | object {
     if (!encryptedValue) return null;
-    
+
     try {
       // Decodificar el valor cifrado de Base64
       const ciphertext = CryptoJS.enc.Base64.parse(encryptedValue);
-      
+
       // Separar IV y datos cifrados
       const iv = ciphertext.clone();
       iv.sigBytes = this.ivSize;
       iv.clamp();
-      
+
       const encrypted = ciphertext.clone();
       encrypted.words.splice(0, this.ivSize / 4);
       encrypted.sigBytes -= this.ivSize;
-      
+
       // Descifrar
       const decrypted = CryptoJS.AES.decrypt(
         { ciphertext: encrypted },
@@ -79,12 +82,12 @@ export class EncryptionService {
         {
           iv: iv,
           padding: CryptoJS.pad.Pkcs7,
-          mode: CryptoJS.mode.CBC
-        }
+          mode: CryptoJS.mode.CBC,
+        },
       );
-      
+
       const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-      
+
       // Si se espera un objeto, convertir de JSON
       if (isObject) {
         try {
@@ -93,14 +96,14 @@ export class EncryptionService {
           return decryptedText;
         }
       }
-      
+
       return decryptedText;
     } catch (error) {
       console.error('Error al descifrar:', error);
       return null;
     }
   }
-  
+
   /**
    * Calcula un hash SHA-256 de un valor
    * @param value Valor a hashear
@@ -110,4 +113,4 @@ export class EncryptionService {
     if (!value) return null;
     return CryptoJS.SHA256(value).toString(CryptoJS.enc.Hex);
   }
-} 
+}

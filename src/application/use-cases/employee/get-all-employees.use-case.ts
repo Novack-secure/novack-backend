@@ -22,7 +22,11 @@ export class GetAllEmployeesUseCase {
     // For now, a simple findAll is implemented.
     const employees = await this.employeeRepository.findAll();
 
-    this.logger.log(`Successfully fetched ${employees.length} employees.`, undefined, { count: employees.length });
+    this.logger.log(
+      `Successfully fetched ${employees.length} employees.`,
+      undefined,
+      { count: employees.length },
+    );
     return employees;
   }
 }

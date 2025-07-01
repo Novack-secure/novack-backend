@@ -43,11 +43,15 @@ export class SupplierRepository implements ISupplierRepository {
     await this.supplierRepository.remove(supplier);
   }
 
-  async saveSubscription(subscription: SupplierSubscription): Promise<SupplierSubscription> {
+  async saveSubscription(
+    subscription: SupplierSubscription,
+  ): Promise<SupplierSubscription> {
     return this.subscriptionRepository.save(subscription);
   }
 
-  createSubscription(createSubscriptionData: Partial<SupplierSubscription>): SupplierSubscription {
+  createSubscription(
+    createSubscriptionData: Partial<SupplierSubscription>,
+  ): SupplierSubscription {
     return this.subscriptionRepository.create(createSubscriptionData);
   }
-} 
+}

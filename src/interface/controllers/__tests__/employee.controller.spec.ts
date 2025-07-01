@@ -3,14 +3,17 @@ import { EmployeeController } from '../employee.controller';
 import { FileStorageService } from '../../../application/services/file-storage.service';
 import { ConfigService } from '@nestjs/config';
 import { BadRequestException, ParseUUIDPipe } from '@nestjs/common';
-import { CreateEmployeeDto, UpdateEmployeeDto } from '../../../application/dtos/employee';
+import {
+  CreateEmployeeDto,
+  UpdateEmployeeDto,
+} from '../../../application/dtos/employee';
 import {
   CreateEmployeeUseCase,
   GetAllEmployeesUseCase,
   GetEmployeeByIdUseCase,
   UpdateEmployeeUseCase,
   DeleteEmployeeUseCase,
-  UpdateEmployeeProfileImageUseCase
+  UpdateEmployeeProfileImageUseCase,
 } from '../../../application/use-cases/employee';
 
 describe('EmployeeController', () => {
@@ -49,7 +52,7 @@ describe('EmployeeController', () => {
       website: 'https://example.com',
       active: true,
       created_at: new Date(),
-      updated_at: new Date()
+      updated_at: new Date(),
     },
     is_2fa_enabled: false,
     is_email_verified: false,
@@ -61,7 +64,7 @@ describe('EmployeeController', () => {
     two_factor_recovery_codes: null,
     email_verification_token: null,
     email_verification_expires: null,
-    locked_until: null
+    locked_until: null,
   };
 
   const mockCreateEmployeeDto: CreateEmployeeDto = {
@@ -150,12 +153,25 @@ describe('EmployeeController', () => {
     }).compile();
 
     controller = module.get<EmployeeController>(EmployeeController);
-    createEmployeeUseCase = module.get<CreateEmployeeUseCase>(CreateEmployeeUseCase);
-    getAllEmployeesUseCase = module.get<GetAllEmployeesUseCase>(GetAllEmployeesUseCase);
-    getEmployeeByIdUseCase = module.get<GetEmployeeByIdUseCase>(GetEmployeeByIdUseCase);
-    updateEmployeeUseCase = module.get<UpdateEmployeeUseCase>(UpdateEmployeeUseCase);
-    deleteEmployeeUseCase = module.get<DeleteEmployeeUseCase>(DeleteEmployeeUseCase);
-    updateEmployeeProfileImageUseCase = module.get<UpdateEmployeeProfileImageUseCase>(UpdateEmployeeProfileImageUseCase);
+    createEmployeeUseCase = module.get<CreateEmployeeUseCase>(
+      CreateEmployeeUseCase,
+    );
+    getAllEmployeesUseCase = module.get<GetAllEmployeesUseCase>(
+      GetAllEmployeesUseCase,
+    );
+    getEmployeeByIdUseCase = module.get<GetEmployeeByIdUseCase>(
+      GetEmployeeByIdUseCase,
+    );
+    updateEmployeeUseCase = module.get<UpdateEmployeeUseCase>(
+      UpdateEmployeeUseCase,
+    );
+    deleteEmployeeUseCase = module.get<DeleteEmployeeUseCase>(
+      DeleteEmployeeUseCase,
+    );
+    updateEmployeeProfileImageUseCase =
+      module.get<UpdateEmployeeProfileImageUseCase>(
+        UpdateEmployeeProfileImageUseCase,
+      );
     fileStorageService = module.get<FileStorageService>(FileStorageService);
     configService = module.get<ConfigService>(ConfigService);
   });
@@ -166,19 +182,25 @@ describe('EmployeeController', () => {
 
   describe('create', () => {
     it('should create a new employee', async () => {
-      jest.spyOn(createEmployeeUseCase, 'execute').mockResolvedValue(mockEmployee as any);
+      jest
+        .spyOn(createEmployeeUseCase, 'execute')
+        .mockResolvedValue(mockEmployee as any);
 
       const result = await controller.create(mockCreateEmployeeDto);
 
       expect(result).toEqual(mockEmployee);
-      expect(createEmployeeUseCase.execute).toHaveBeenCalledWith(mockCreateEmployeeDto);
+      expect(createEmployeeUseCase.execute).toHaveBeenCalledWith(
+        mockCreateEmployeeDto,
+      );
     });
   });
 
   describe('findAll', () => {
     it('should return an array of employees', async () => {
       const mockEmployees = [mockEmployee];
-      jest.spyOn(getAllEmployeesUseCase, 'execute').mockResolvedValue(mockEmployees as any);
+      jest
+        .spyOn(getAllEmployeesUseCase, 'execute')
+        .mockResolvedValue(mockEmployees as any);
 
       const result = await controller.findAll();
 
@@ -189,12 +211,18 @@ describe('EmployeeController', () => {
 
   describe('findOne', () => {
     it('should return a single employee by id', async () => {
-      jest.spyOn(getEmployeeByIdUseCase, 'execute').mockResolvedValue(mockEmployee as any);
+      jest
+        .spyOn(getEmployeeByIdUseCase, 'execute')
+        .mockResolvedValue(mockEmployee as any);
 
-      const result = await controller.findOne('123e4567-e89b-12d3-a456-426614174000');
+      const result = await controller.findOne(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual(mockEmployee);
-      expect(getEmployeeByIdUseCase.execute).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000');
+      expect(getEmployeeByIdUseCase.execute).toHaveBeenCalledWith(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
     });
   });
 
@@ -210,23 +238,37 @@ describe('EmployeeController', () => {
         department: mockUpdateEmployeeDto.department,
       };
 
-      jest.spyOn(updateEmployeeUseCase, 'execute').mockResolvedValue(updatedEmployee as any);
+      jest
+        .spyOn(updateEmployeeUseCase, 'execute')
+        .mockResolvedValue(updatedEmployee as any);
 
-      const result = await controller.update('123e4567-e89b-12d3-a456-426614174000', mockUpdateEmployeeDto);
+      const result = await controller.update(
+        '123e4567-e89b-12d3-a456-426614174000',
+        mockUpdateEmployeeDto,
+      );
 
       expect(result).toEqual(updatedEmployee);
-      expect(updateEmployeeUseCase.execute).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000', mockUpdateEmployeeDto);
+      expect(updateEmployeeUseCase.execute).toHaveBeenCalledWith(
+        '123e4567-e89b-12d3-a456-426614174000',
+        mockUpdateEmployeeDto,
+      );
     });
   });
 
   describe('remove', () => {
     it('should remove an employee', async () => {
-      jest.spyOn(deleteEmployeeUseCase, 'execute').mockResolvedValue(mockEmployee as any);
+      jest
+        .spyOn(deleteEmployeeUseCase, 'execute')
+        .mockResolvedValue(mockEmployee as any);
 
-      const result = await controller.remove('123e4567-e89b-12d3-a456-426614174000');
+      const result = await controller.remove(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
 
       expect(result).toEqual(mockEmployee);
-      expect(deleteEmployeeUseCase.execute).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000');
+      expect(deleteEmployeeUseCase.execute).toHaveBeenCalledWith(
+        '123e4567-e89b-12d3-a456-426614174000',
+      );
     });
   });
 
@@ -234,50 +276,65 @@ describe('EmployeeController', () => {
     it('should upload a profile image and update the employee profile image url', async () => {
       const bucketName = 'test-employee-bucket';
       const imageUrl = 'https://example.com/path/to/image.jpg';
-      const updatedEmployee = { 
-        ...mockEmployee, 
-        profile_image_url: imageUrl 
+      const updatedEmployee = {
+        ...mockEmployee,
+        profile_image_url: imageUrl,
       };
-      
+
       // El controlador devuelve un objeto con message y url en lugar del empleado completo
       const expectedResponse = {
         message: 'Imagen de perfil actualizada correctamente.',
-        url: imageUrl
+        url: imageUrl,
       };
 
       jest.spyOn(configService, 'get').mockReturnValue(bucketName);
       jest.spyOn(fileStorageService, 'uploadFile').mockResolvedValue(imageUrl);
-      jest.spyOn(updateEmployeeProfileImageUseCase, 'execute').mockResolvedValue(updatedEmployee as any);
+      jest
+        .spyOn(updateEmployeeProfileImageUseCase, 'execute')
+        .mockResolvedValue(updatedEmployee as any);
 
-      const result = await controller.uploadProfileImage('123e4567-e89b-12d3-a456-426614174000', mockFile);
+      const result = await controller.uploadProfileImage(
+        '123e4567-e89b-12d3-a456-426614174000',
+        mockFile,
+      );
 
       expect(result).toEqual(expectedResponse);
-      expect(configService.get).toHaveBeenCalledWith('AWS_S3_EMPLOYEE_BUCKET_NAME');
+      expect(configService.get).toHaveBeenCalledWith(
+        'AWS_S3_EMPLOYEE_BUCKET_NAME',
+      );
       expect(fileStorageService.uploadFile).toHaveBeenCalledWith(
         bucketName,
         mockFile.buffer,
         mockFile.originalname,
         mockFile.mimetype,
-        'profile/'
+        'profile/',
       );
       expect(updateEmployeeProfileImageUseCase.execute).toHaveBeenCalledWith(
         '123e4567-e89b-12d3-a456-426614174000',
-        imageUrl
+        imageUrl,
       );
     });
 
     it('should throw BadRequestException if no file is provided', async () => {
-      await expect(controller.uploadProfileImage('123e4567-e89b-12d3-a456-426614174000', null)).rejects.toThrow(
-        BadRequestException
-      );
+      await expect(
+        controller.uploadProfileImage(
+          '123e4567-e89b-12d3-a456-426614174000',
+          null,
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw Error if bucket name is not configured', async () => {
       jest.spyOn(configService, 'get').mockReturnValue(null);
 
-      await expect(controller.uploadProfileImage('123e4567-e89b-12d3-a456-426614174000', mockFile)).rejects.toThrow(
-        Error // Cambiado de BadRequestException a Error
+      await expect(
+        controller.uploadProfileImage(
+          '123e4567-e89b-12d3-a456-426614174000',
+          mockFile,
+        ),
+      ).rejects.toThrow(
+        Error, // Cambiado de BadRequestException a Error
       );
     });
   });
-}); 
+});

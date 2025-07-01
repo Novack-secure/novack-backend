@@ -55,12 +55,16 @@ describe('BruteForceMiddleware', () => {
   it('should allow login when attempts are below limit', async () => {
     // Configurar el mock para devolver un número bajo de intentos
     jest.spyOn(loginAttemptRepository, 'count').mockResolvedValue(3);
-    
+
     // Configurar la ruta y método para esta prueba
     Object.defineProperty(mockRequest, 'path', { value: '/auth/login' });
     Object.defineProperty(mockRequest, 'method', { value: 'POST' });
 
-    await middleware.use(mockRequest as Request, mockResponse as Response, mockNext);
+    await middleware.use(
+      mockRequest as Request,
+      mockResponse as Response,
+      mockNext,
+    );
 
     expect(loginAttemptRepository.count).toHaveBeenCalled();
     expect(mockNext).toHaveBeenCalled();
@@ -69,17 +73,25 @@ describe('BruteForceMiddleware', () => {
   it('should block login when attempts exceed limit', async () => {
     // Configurar el mock para devolver un número de intentos por encima del límite
     jest.spyOn(loginAttemptRepository, 'count').mockResolvedValue(6);
-    jest.spyOn(loginAttemptRepository, 'create').mockReturnValue({} as LoginAttempt);
-    jest.spyOn(loginAttemptRepository, 'save').mockResolvedValue({} as LoginAttempt);
-    
+    jest
+      .spyOn(loginAttemptRepository, 'create')
+      .mockReturnValue({} as LoginAttempt);
+    jest
+      .spyOn(loginAttemptRepository, 'save')
+      .mockResolvedValue({} as LoginAttempt);
+
     // Configurar la ruta y método para esta prueba
     Object.defineProperty(mockRequest, 'path', { value: '/auth/login' });
     Object.defineProperty(mockRequest, 'method', { value: 'POST' });
 
     await expect(
-      middleware.use(mockRequest as Request, mockResponse as Response, mockNext),
+      middleware.use(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext,
+      ),
     ).rejects.toThrow(HttpException);
-    
+
     expect(loginAttemptRepository.count).toHaveBeenCalled();
     expect(loginAttemptRepository.create).toHaveBeenCalled();
     expect(loginAttemptRepository.save).toHaveBeenCalled();
@@ -91,7 +103,11 @@ describe('BruteForceMiddleware', () => {
     Object.defineProperty(mockRequest, 'path', { value: '/other-route' });
     Object.defineProperty(mockRequest, 'method', { value: 'POST' });
 
-    await middleware.use(mockRequest as Request, mockResponse as Response, mockNext);
+    await middleware.use(
+      mockRequest as Request,
+      mockResponse as Response,
+      mockNext,
+    );
 
     expect(loginAttemptRepository.count).not.toHaveBeenCalled();
     expect(mockNext).toHaveBeenCalled();
@@ -102,9 +118,13 @@ describe('BruteForceMiddleware', () => {
     Object.defineProperty(mockRequest, 'path', { value: '/auth/login' });
     Object.defineProperty(mockRequest, 'method', { value: 'GET' });
 
-    await middleware.use(mockRequest as Request, mockResponse as Response, mockNext);
+    await middleware.use(
+      mockRequest as Request,
+      mockResponse as Response,
+      mockNext,
+    );
 
     expect(loginAttemptRepository.count).not.toHaveBeenCalled();
     expect(mockNext).toHaveBeenCalled();
   });
-}); 
+});

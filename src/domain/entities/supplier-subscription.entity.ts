@@ -31,7 +31,7 @@ export class SupplierSubscription {
 
   @Column({ type: 'timestamp', nullable: true })
   subscription_start_date: Date;
-  
+
   @Column({ type: 'timestamp', nullable: true })
   subscription_end_date: Date;
 
@@ -47,6 +47,8 @@ export class SupplierSubscription {
   @Column({ nullable: true })
   supplier_id: string;
 
-  // Relación con Supplier - sin decorador para evitar referencias circulares
-  supplier?: Supplier;
-} 
+  // Relación con Supplier
+  @OneToOne(() => Supplier, (supplier) => supplier.subscription)
+  @JoinColumn({ name: 'supplier_id' })
+  supplier: Supplier;
+}

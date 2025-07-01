@@ -20,8 +20,8 @@ export class AuditService {
   async logAccess(auditInfo: AuditInfo): Promise<void> {
     try {
       // Encriptar datos sensibles adicionales antes de guardar
-      const encryptedAdditionalData = auditInfo.additionalData 
-        ? this.encryptionService.encrypt(auditInfo.additionalData) 
+      const encryptedAdditionalData = auditInfo.additionalData
+        ? this.encryptionService.encrypt(auditInfo.additionalData)
         : null;
 
       const auditLog = this.auditLogRepository.create({
@@ -67,7 +67,8 @@ export class AuditService {
       limit = 20,
     } = filters;
 
-    const queryBuilder = this.auditLogRepository.createQueryBuilder('audit_log');
+    const queryBuilder =
+      this.auditLogRepository.createQueryBuilder('audit_log');
 
     // Aplicar filtros
     if (userId) {
@@ -108,27 +109,33 @@ export class AuditService {
     const [logs, total] = await queryBuilder.getManyAndCount();
 
     // Descifrar datos adicionales si existen
-    const processedLogs = logs.map(log => {
+    const processedLogs = logs.map((log) => {
       let parsedData = null;
       if (log.additional_data) {
         try {
           // Descifrar pero no asignar directamente al campo string
           const decryptedData = this.encryptionService.decrypt(
             log.additional_data,
-            false
+            false,
           );
           // Parsear el string descifrado
-          parsedData = typeof decryptedData === 'string' ? JSON.parse(decryptedData) : null;
+          parsedData =
+            typeof decryptedData === 'string'
+              ? JSON.parse(decryptedData)
+              : null;
         } catch (error) {
-          console.error(`Error al descifrar datos adicionales ID: ${log.id}`, error);
+          console.error(
+            `Error al descifrar datos adicionales ID: ${log.id}`,
+            error,
+          );
           parsedData = { error: 'Error al descifrar datos' };
         }
       }
-      
+
       // Devuelve un nuevo objeto con los datos descifrados separados
       return {
         ...log,
-        additional_data_parsed: parsedData
+        additional_data_parsed: parsedData,
       };
     });
 
@@ -142,4 +149,4 @@ export class AuditService {
       },
     };
   }
-} 
+}

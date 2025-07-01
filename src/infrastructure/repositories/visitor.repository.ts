@@ -30,8 +30,8 @@ export class VisitorRepository implements IVisitorRepository {
         'supplier',
         'card',
         'appointments',
-        'appointments.supplier' // Example of nested relation if needed
-    ],
+        'appointments.supplier', // Example of nested relation if needed
+      ],
     });
   }
 

@@ -9,7 +9,7 @@ import {
   JoinColumn,
   OneToMany,
   ManyToMany,
-  JoinTable
+  JoinTable,
 } from 'typeorm';
 import { Supplier } from './supplier.entity';
 import { Card } from './card.entity';
@@ -51,23 +51,23 @@ export class Employee {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updated_at: Date;
 
-  @ManyToOne(() => Supplier, supplier => supplier.employees)
+  @ManyToOne(() => Supplier, (supplier) => supplier.employees)
   supplier: Supplier;
 
   @Column()
   supplier_id: string;
 
-  @OneToMany(() => Card, card => card.assigned_to)
+  @OneToMany(() => Card, (card) => card.assigned_to)
   cards: Card[];
 
   @ManyToMany(() => ChatRoom)
   @JoinTable({
     name: 'chat_room_employees',
     joinColumn: { name: 'employee_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'chat_room_id', referencedColumnName: 'id' }
+    inverseJoinColumn: { name: 'chat_room_id', referencedColumnName: 'id' },
   })
   chat_rooms: ChatRoom[];
 
-  @OneToOne(() => EmployeeCredentials, credentials => credentials.employee)
+  @OneToOne(() => EmployeeCredentials, (credentials) => credentials.employee)
   credentials: EmployeeCredentials;
 }

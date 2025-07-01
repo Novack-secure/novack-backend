@@ -8,4 +8,4 @@ import { CsrfController } from '../../interface/controllers/csrf.controller';
   providers: [CsrfService, CsrfMiddleware],
   exports: [CsrfService, CsrfMiddleware],
 })
-export class CsrfModule {} 
+export class CsrfModule {}

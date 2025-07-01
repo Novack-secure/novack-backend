@@ -19,8 +19,14 @@ import {
 } from '../use-cases/employee';
 
 // Repositories - Interface & Implementation
-import { IEmployeeRepository, ISupplierRepository } from '../../domain/repositories'; // Ruta corregida
-import { EmployeeRepository, SupplierRepository } from '../../infrastructure/repositories'; // Ruta corregida
+import {
+  IEmployeeRepository,
+  ISupplierRepository,
+} from '../../domain/repositories'; // Ruta corregida
+import {
+  EmployeeRepository,
+  SupplierRepository,
+} from '../../infrastructure/repositories'; // Ruta corregida
 
 // Other necessary modules
 import { TokenModule } from './token.module'; // Retained

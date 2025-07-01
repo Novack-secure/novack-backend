@@ -53,15 +53,16 @@ describe('UpdateVisitorProfileImageUseCase', () => {
   const newImageUrl = 'http://example.com/new-image.jpg';
 
   // Use a function to get a fresh mock object for each test run
-  const getMockExistingVisitor = () => ({
-    id: visitorId,
-    name: 'Visitor Image Test',
-    profile_image_url: 'http://example.com/old-image.jpg',
-    // other required fields...
-    // Need to ensure all fields that might be spread or accessed are here
-    email: 'test@example.com', // Example of another field
-    state: 'pendiente',
-  } as Visitor);
+  const getMockExistingVisitor = () =>
+    ({
+      id: visitorId,
+      name: 'Visitor Image Test',
+      profile_image_url: 'http://example.com/old-image.jpg',
+      // other required fields...
+      // Need to ensure all fields that might be spread or accessed are here
+      email: 'test@example.com', // Example of another field
+      state: 'pendiente',
+    }) as Visitor;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -74,7 +75,9 @@ describe('UpdateVisitorProfileImageUseCase', () => {
       ],
     }).compile();
 
-    useCase = module.get<UpdateVisitorProfileImageUseCase>(UpdateVisitorProfileImageUseCase);
+    useCase = module.get<UpdateVisitorProfileImageUseCase>(
+      UpdateVisitorProfileImageUseCase,
+    );
     repository = module.get<IVisitorRepository>(IVisitorRepository);
   });
 
@@ -87,18 +90,22 @@ describe('UpdateVisitorProfileImageUseCase', () => {
       const mockVisitor = getMockExistingVisitor();
       mockVisitorRepository.findById.mockResolvedValue(mockVisitor);
       // Mock save to return the visitor with the updated URL
-      mockVisitorRepository.save.mockImplementation(async (visitorToSave: Visitor) => {
-        // Create a new object to avoid issues with object references in tests
-        return { ...visitorToSave };
-      });
+      mockVisitorRepository.save.mockImplementation(
+        async (visitorToSave: Visitor) => {
+          // Create a new object to avoid issues with object references in tests
+          return { ...visitorToSave };
+        },
+      );
 
       const result = await useCase.execute(visitorId, newImageUrl);
 
       expect(repository.findById).toHaveBeenCalledWith(visitorId);
-      expect(repository.save).toHaveBeenCalledWith(expect.objectContaining({
-        id: visitorId,
-        profile_image_url: newImageUrl,
-      }));
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: visitorId,
+          profile_image_url: newImageUrl,
+        }),
+      );
       expect(result.profile_image_url).toEqual(newImageUrl);
       expect(mockLoggerService.log).toHaveBeenCalledWith(
         `Attempting to update profile image URL for visitor id: ${visitorId}`,
@@ -116,7 +123,9 @@ describe('UpdateVisitorProfileImageUseCase', () => {
     it('should throw NotFoundException if visitor not found', async () => {
       mockVisitorRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute(visitorId, newImageUrl)).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute(visitorId, newImageUrl)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(repository.findById).toHaveBeenCalledWith(visitorId);
       expect(repository.save).not.toHaveBeenCalled();
       expect(mockLoggerService.warn).toHaveBeenCalledWith(
@@ -130,7 +139,9 @@ describe('UpdateVisitorProfileImageUseCase', () => {
       const dbError = new Error('DB error findById');
       mockVisitorRepository.findById.mockRejectedValue(dbError);
 
-      await expect(useCase.execute(visitorId, newImageUrl)).rejects.toThrow(dbError);
+      await expect(useCase.execute(visitorId, newImageUrl)).rejects.toThrow(
+        dbError,
+      );
       expect(repository.save).not.toHaveBeenCalled();
     });
 
@@ -140,11 +151,15 @@ describe('UpdateVisitorProfileImageUseCase', () => {
       const dbError = new Error('DB error save');
       mockVisitorRepository.save.mockRejectedValue(dbError);
 
-      await expect(useCase.execute(visitorId, newImageUrl)).rejects.toThrow(dbError);
-      expect(repository.save).toHaveBeenCalledWith(expect.objectContaining({
-        id: visitorId,
-        profile_image_url: newImageUrl,
-      }));
+      await expect(useCase.execute(visitorId, newImageUrl)).rejects.toThrow(
+        dbError,
+      );
+      expect(repository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: visitorId,
+          profile_image_url: newImageUrl,
+        }),
+      );
       // The use case currently does not log an error itself before propagating from save.
       // If it did: expect(mockLoggerService.error).toHaveBeenCalledWith(...);
     });

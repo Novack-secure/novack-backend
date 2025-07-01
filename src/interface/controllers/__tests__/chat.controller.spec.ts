@@ -50,7 +50,11 @@ describe('ChatController', () => {
       // Mock setup
       const user = { id: 'user123', userType: 'employee' };
       const rooms = [
-        { id: 'room1', name: 'Room 1', type: ChatRoomType.EMPLOYEE_TO_EMPLOYEE },
+        {
+          id: 'room1',
+          name: 'Room 1',
+          type: ChatRoomType.EMPLOYEE_TO_EMPLOYEE,
+        },
         { id: 'room2', name: 'Room 2', type: ChatRoomType.SUPPLIER_GROUP },
       ];
       mockChatService.getUserRooms.mockResolvedValue(rooms);
@@ -62,7 +66,7 @@ describe('ChatController', () => {
       // Verify
       expect(mockChatService.getUserRooms).toHaveBeenCalledWith(
         user.id,
-        user.userType || 'employee'
+        user.userType || 'employee',
       );
       expect(result).toEqual(rooms);
     });
@@ -74,19 +78,19 @@ describe('ChatController', () => {
       const roomId = 'room123';
       const user = { id: 'user456', userType: 'employee' };
       const messages = [
-        { 
+        {
           id: 'msg1',
           content: 'Hello',
           sender_employee_id: 'emp1',
           chat_room_id: roomId,
-          is_read: true 
+          is_read: true,
         },
-        { 
+        {
           id: 'msg2',
           content: 'World',
           sender_employee_id: user.id,
           chat_room_id: roomId,
-          is_read: true 
+          is_read: true,
         },
       ];
       mockChatService.getRoomMessages.mockResolvedValue(messages);
@@ -99,7 +103,7 @@ describe('ChatController', () => {
       expect(mockChatService.getRoomMessages).toHaveBeenCalledWith(
         roomId,
         user.id,
-        user.userType || 'employee'
+        user.userType || 'employee',
       );
       expect(result).toEqual(messages);
     });
@@ -109,19 +113,19 @@ describe('ChatController', () => {
       const roomId = 'nonExistentRoom';
       const user = { id: 'user456', userType: 'employee' };
       mockChatService.getRoomMessages.mockRejectedValue(
-        new NotFoundException('La sala de chat no existe')
+        new NotFoundException('La sala de chat no existe'),
       );
 
       // Call controller
       const req = { user };
       await expect(controller.getRoomMessages(roomId, req)).rejects.toThrow(
-        NotFoundException
+        NotFoundException,
       );
-      
+
       expect(mockChatService.getRoomMessages).toHaveBeenCalledWith(
         roomId,
         user.id,
-        user.userType || 'employee'
+        user.userType || 'employee',
       );
     });
   });
@@ -134,7 +138,7 @@ describe('ChatController', () => {
         type: ChatRoomType.EMPLOYEE_TO_EMPLOYEE,
         employeeIds: ['emp1', 'emp2'],
       };
-      
+
       const createdRoom = {
         id: 'room123',
         name: 'New Room',
@@ -145,7 +149,7 @@ describe('ChatController', () => {
         ],
         visitors: [],
       };
-      
+
       mockChatService.createRoom.mockResolvedValue(createdRoom);
 
       // Call controller
@@ -165,9 +169,9 @@ describe('ChatController', () => {
         content: 'Hello, world!',
         roomId: 'room123',
       };
-      
+
       const user = { id: 'user456', userType: 'employee' };
-      
+
       const createdMessage = {
         id: 'msg789',
         content: 'Hello, world!',
@@ -177,7 +181,7 @@ describe('ChatController', () => {
         is_read: false,
         created_at: new Date(),
       };
-      
+
       mockChatService.addMessage.mockResolvedValue(createdMessage);
 
       // Call controller
@@ -185,7 +189,10 @@ describe('ChatController', () => {
       const result = await controller.createMessage(createMessageDto, req);
 
       // Verify
-      expect(mockChatService.addMessage).toHaveBeenCalledWith(createMessageDto, user);
+      expect(mockChatService.addMessage).toHaveBeenCalledWith(
+        createMessageDto,
+        user,
+      );
       expect(result).toEqual(createdMessage);
     });
 
@@ -195,20 +202,23 @@ describe('ChatController', () => {
         content: 'Hello, world!',
         roomId: 'nonExistentRoom',
       };
-      
+
       const user = { id: 'user456', userType: 'employee' };
-      
+
       mockChatService.addMessage.mockRejectedValue(
-        new NotFoundException('La sala de chat no existe')
+        new NotFoundException('La sala de chat no existe'),
       );
 
       // Call controller
       const req = { user };
-      await expect(controller.createMessage(createMessageDto, req)).rejects.toThrow(
-        NotFoundException
+      await expect(
+        controller.createMessage(createMessageDto, req),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(mockChatService.addMessage).toHaveBeenCalledWith(
+        createMessageDto,
+        user,
       );
-      
-      expect(mockChatService.addMessage).toHaveBeenCalledWith(createMessageDto, user);
     });
   });
 
@@ -216,7 +226,7 @@ describe('ChatController', () => {
     it('should call chatService.createSupplierGroupRoom with correct parameters', async () => {
       // Mock setup
       const supplierId = 'supplier123';
-      
+
       const room = {
         id: 'room456',
         name: 'Grupo Supplier Test',
@@ -225,14 +235,16 @@ describe('ChatController', () => {
         employees: [],
         visitors: [],
       };
-      
+
       mockChatService.createSupplierGroupRoom.mockResolvedValue(room);
 
       // Call controller
       const result = await controller.createSupplierGroupRoom(supplierId);
 
       // Verify
-      expect(mockChatService.createSupplierGroupRoom).toHaveBeenCalledWith(supplierId);
+      expect(mockChatService.createSupplierGroupRoom).toHaveBeenCalledWith(
+        supplierId,
+      );
       expect(result).toEqual(room);
     });
   });
@@ -241,8 +253,11 @@ describe('ChatController', () => {
     it('should call chatService.getOrCreatePrivateRoom with correct parameters', async () => {
       // Mock setup
       const user = { id: 'user123', userType: 'employee' };
-      const targetData: { targetUserId: string; targetUserType: "employee" | "visitor" } = { targetUserId: 'user456', targetUserType: 'visitor' };
-      
+      const targetData: {
+        targetUserId: string;
+        targetUserType: 'employee' | 'visitor';
+      } = { targetUserId: 'user456', targetUserType: 'visitor' };
+
       const room = {
         id: 'privateRoom123',
         name: 'Chat: Employee - Visitor',
@@ -250,7 +265,7 @@ describe('ChatController', () => {
         employees: [{ id: user.id }],
         visitors: [{ id: targetData.targetUserId }],
       };
-      
+
       mockChatService.getOrCreatePrivateRoom.mockResolvedValue(room);
 
       // Call controller
@@ -262,7 +277,7 @@ describe('ChatController', () => {
         user.id,
         user.userType || 'employee',
         targetData.targetUserId,
-        targetData.targetUserType
+        targetData.targetUserType,
       );
       expect(result).toEqual(room);
     });
@@ -270,15 +285,18 @@ describe('ChatController', () => {
     it('should throw BadRequestException when target user info is missing', async () => {
       // Mock setup
       const user = { id: 'user123', userType: 'employee' };
-      const targetData: { targetUserId: string; targetUserType: "employee" | "visitor" } = { targetUserId: '', targetUserType: 'employee' };
+      const targetData: {
+        targetUserId: string;
+        targetUserType: 'employee' | 'visitor';
+      } = { targetUserId: '', targetUserType: 'employee' };
 
       // Call controller
       const req = { user };
-      await expect(controller.createPrivateRoom(targetData, req)).rejects.toThrow(
-        BadRequestException
-      );
-      
+      await expect(
+        controller.createPrivateRoom(targetData, req),
+      ).rejects.toThrow(BadRequestException);
+
       expect(mockChatService.getOrCreatePrivateRoom).not.toHaveBeenCalled();
     });
   });
-}); 
+});

@@ -25,10 +25,15 @@ const COMPRESSION_OPTIONS = {
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 @Injectable()
-export class ImageProcessingPipe implements PipeTransform<Express.Multer.File, Promise<Express.Multer.File>> {
+export class ImageProcessingPipe
+  implements PipeTransform<Express.Multer.File, Promise<Express.Multer.File>>
+{
   private readonly logger = new Logger(ImageProcessingPipe.name);
 
-  async transform(value: Express.Multer.File, metadata: ArgumentMetadata): Promise<Express.Multer.File> {
+  async transform(
+    value: Express.Multer.File,
+    metadata: ArgumentMetadata,
+  ): Promise<Express.Multer.File> {
     // Verificar si el valor es un archivo Multer válido
     if (!value || !value.buffer || !value.mimetype) {
       throw new BadRequestException('Se esperaba un archivo.');
@@ -43,7 +48,6 @@ export class ImageProcessingPipe implements PipeTransform<Express.Multer.File, P
       );
     }
 
-
     try {
       // 2. Comprimir y procesar imagen con sharp
       let processedBuffer = await sharp(file.buffer)
@@ -52,7 +56,6 @@ export class ImageProcessingPipe implements PipeTransform<Express.Multer.File, P
         // .webp({ quality: COMPRESSION_OPTIONS.quality }) // O usar WEBP
         // .png({ compressionLevel: 9, quality: COMPRESSION_OPTIONS.quality }) // Opciones para PNG
         .toBuffer();
-
 
       // Devolver el archivo Multer modificado con el buffer procesado
       // y actualizando el mimetype si lo cambiamos (ej. a image/jpeg)
@@ -67,4 +70,4 @@ export class ImageProcessingPipe implements PipeTransform<Express.Multer.File, P
       throw new BadRequestException('Error al procesar la imagen.');
     }
   }
-} 
+}

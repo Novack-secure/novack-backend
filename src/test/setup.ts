@@ -21,4 +21,4 @@ jest.mock('@nestjs/config', () => ({
       }
     }),
   })),
-})); 
+}));

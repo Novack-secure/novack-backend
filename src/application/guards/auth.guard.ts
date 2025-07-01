@@ -12,15 +12,15 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 export class AuthGuard implements CanActivate {
   constructor(
     private tokenService: TokenService,
-    private reflector: Reflector
+    private reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Verificar si la ruta está marcada como pública
-    const isPublic = this.reflector.getAllAndOverride<boolean>(
-      IS_PUBLIC_KEY,
-      [context.getHandler(), context.getClass()]
-    );
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (isPublic) {
       return true;
@@ -32,7 +32,9 @@ export class AuthGuard implements CanActivate {
       const authHeader = request.headers.authorization;
 
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        throw new UnauthorizedException('Token de autenticación no proporcionado');
+        throw new UnauthorizedException(
+          'Token de autenticación no proporcionado',
+        );
       }
 
       const token = authHeader.replace('Bearer ', '');
@@ -47,4 +49,3 @@ export class AuthGuard implements CanActivate {
     }
   }
 }
-

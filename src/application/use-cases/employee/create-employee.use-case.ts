@@ -23,14 +23,22 @@ export class CreateEmployeeUseCase {
 
     const { password, ...employeeData } = createEmployeeDto;
 
-    const existingEmployee = await this.employeeRepository.findByEmail(employeeData.email);
+    const existingEmployee = await this.employeeRepository.findByEmail(
+      employeeData.email,
+    );
     if (existingEmployee) {
-      this.logger.warn('Employee account creation failed: Email already exists', undefined, {
-        email: createEmployeeDto.email,
-      });
+      this.logger.warn(
+        'Employee account creation failed: Email already exists',
+        undefined,
+        {
+          email: createEmployeeDto.email,
+        },
+      );
       // Note: Original EmployeeService used BadRequestException here.
       // The old use case threw a generic Error. Standardizing to BadRequestException.
-      throw new BadRequestException('Ya existe un empleado con este correo electrónico');
+      throw new BadRequestException(
+        'Ya existe un empleado con este correo electrónico',
+      );
     }
 
     const saltRounds = 10; // Consider making this configurable via ConfigService
@@ -53,7 +61,9 @@ export class CreateEmployeeUseCase {
     // Type casting to Partial<Employee> might be needed if createEmployeeDto doesn't perfectly align
     // or if the credentials part makes it not a direct Employee shape.
     // The repository's `create` method should be robust enough to handle this structure.
-    const newEmployee = await this.employeeRepository.create(newEmployeeData as Partial<Employee>);
+    const newEmployee = await this.employeeRepository.create(
+      newEmployeeData as Partial<Employee>,
+    );
 
     this.logger.log('Employee account created successfully', undefined, {
       employeeId: newEmployee.id,

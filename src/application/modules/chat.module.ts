@@ -2,7 +2,13 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ChatRoom, ChatMessage, Employee, Visitor, Supplier } from 'src/domain/entities';
+import {
+  ChatRoom,
+  ChatMessage,
+  Employee,
+  Visitor,
+  Supplier,
+} from 'src/domain/entities';
 import { ChatService } from '../services/chat.service';
 import { ChatController } from '../../interface/controllers/chat.controller';
 import { ChatGateway } from '../../infrastructure/websockets/chat.gateway';
@@ -13,7 +19,13 @@ import { TokenModule } from './token.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ChatRoom, ChatMessage, Employee, Visitor, Supplier]),
+    TypeOrmModule.forFeature([
+      ChatRoom,
+      ChatMessage,
+      Employee,
+      Visitor,
+      Supplier,
+    ]),
     RedisDatabaseModule,
     AuthModule,
     TokenModule,
@@ -30,4 +42,4 @@ import { TokenModule } from './token.module';
   providers: [ChatService, ChatGateway, WsJwtGuard],
   exports: [ChatService],
 })
-export class ChatModule {} 
+export class ChatModule {}

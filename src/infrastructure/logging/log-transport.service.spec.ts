@@ -29,7 +29,6 @@ jest.mock('fs', () => ({
   })),
 }));
 
-
 describe('LogTransportService', () => {
   let service: LogTransportService;
   let mockConfigService: ConfigService;
@@ -41,21 +40,31 @@ describe('LogTransportService', () => {
     (fs.existsSync as jest.Mock).mockReset();
     (fs.mkdirSync as jest.Mock).mockReset();
     (fs.createWriteStream as jest.Mock).mockImplementation(() => ({
-        write: jest.fn(),
-        end: jest.fn(),
-        on: jest.fn(),
-      }));
+      write: jest.fn(),
+      end: jest.fn(),
+      on: jest.fn(),
+    }));
 
     // Define the specific methods for the instance to be returned for each test
     mockSocketInstance = {
-      connect: jest.fn().mockImplementation((portOrPath: any, hostOrConnectListener?: any, connectListener?: any) => {
-        if (typeof hostOrConnectListener === 'function') { // (path, listener) or (port, listener)
-          hostOrConnectListener();
-        } else if (typeof connectListener === 'function') { // (port, host, listener)
-          connectListener();
-        }
-        return mockSocketInstance; // Return instance for chaining if any
-      }),
+      connect: jest
+        .fn()
+        .mockImplementation(
+          (
+            portOrPath: any,
+            hostOrConnectListener?: any,
+            connectListener?: any,
+          ) => {
+            if (typeof hostOrConnectListener === 'function') {
+              // (path, listener) or (port, listener)
+              hostOrConnectListener();
+            } else if (typeof connectListener === 'function') {
+              // (port, host, listener)
+              connectListener();
+            }
+            return mockSocketInstance; // Return instance for chaining if any
+          },
+        ),
       on: jest.fn().mockReturnThis(),
       write: jest.fn((data: any, encoding?: any, callback?: any) => {
         if (typeof encoding === 'function') callback = encoding;
@@ -67,7 +76,10 @@ describe('LogTransportService', () => {
       writable: true, // Default writable state
       // Add all other methods from net.Socket that might be called by the service
       removeAllListeners: jest.fn().mockReturnThis(),
-      end: jest.fn((callback?: () => void) => { if(callback) callback(); return mockSocketInstance; }),
+      end: jest.fn((callback?: () => void) => {
+        if (callback) callback();
+        return mockSocketInstance;
+      }),
       setEncoding: jest.fn().mockReturnThis(),
       setKeepAlive: jest.fn().mockReturnThis(),
       setNoDelay: jest.fn().mockReturnThis(),
@@ -78,7 +90,9 @@ describe('LogTransportService', () => {
     } as unknown as jest.Mocked<net.Socket>;
 
     // Configure the mocked Socket constructor to return this specific, fresh instance
-    const MockedSocketConstructor = net.Socket as jest.MockedClass<typeof net.Socket>;
+    const MockedSocketConstructor = net.Socket as jest.MockedClass<
+      typeof net.Socket
+    >;
     MockedSocketConstructor.mockReturnValue(mockSocketInstance);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -146,7 +160,11 @@ describe('LogTransportService', () => {
       const newService = new LogTransportService(mockConfigService);
       newService.onModuleInit(); // Call onModuleInit to trigger connection attempt
       await new Promise(setImmediate); // Allow async operations like connect to proceed
-      expect(mockSocketInstance.connect).toHaveBeenCalledWith(5000, 'logstash', expect.any(Function));
+      expect(mockSocketInstance.connect).toHaveBeenCalledWith(
+        5000,
+        'logstash',
+        expect.any(Function),
+      );
     });
 
     it('should create log directory if LOG_TO_FILE is true and directory does not exist', () => {
@@ -157,52 +175,66 @@ describe('LogTransportService', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
       const newService = new LogTransportService(mockConfigService);
       newService.onModuleInit();
-      expect(fs.mkdirSync).toHaveBeenCalledWith(expect.any(String), { recursive: true });
+      expect(fs.mkdirSync).toHaveBeenCalledWith(expect.any(String), {
+        recursive: true,
+      });
     });
 
     it('should not create log directory if LOG_TO_FILE is true and directory already exists', () => {
-        (mockConfigService.get as jest.Mock).mockImplementation((key: string) => {
-          if (key === 'LOG_TO_FILE') return 'true';
-          return 'test';
-        });
-        (fs.existsSync as jest.Mock).mockReturnValue(true);
-        const newService = new LogTransportService(mockConfigService);
-        newService.onModuleInit();
-        expect(fs.mkdirSync).not.toHaveBeenCalled();
+      (mockConfigService.get as jest.Mock).mockImplementation((key: string) => {
+        if (key === 'LOG_TO_FILE') return 'true';
+        return 'test';
       });
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      const newService = new LogTransportService(mockConfigService);
+      newService.onModuleInit();
+      expect(fs.mkdirSync).not.toHaveBeenCalled();
+    });
   });
 
   describe('Log Sending', () => {
-    const logData = { message: 'test log', level: 'info', timestamp: new Date().toISOString() };
+    const logData = {
+      message: 'test log',
+      level: 'info',
+      timestamp: new Date().toISOString(),
+    };
 
     it('should send log to console if fallback is enabled and no other transports are active', () => {
       const consoleSpy = jest.spyOn(console, 'log');
       service.sendLog(logData);
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(logData.message));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining(logData.message),
+      );
       consoleSpy.mockRestore();
     });
 
     it('should write to file if LOG_TO_FILE is true', () => {
-        (mockConfigService.get as jest.Mock).mockImplementation((key: string) => {
-          if (key === 'LOG_TO_FILE') return 'true';
-          if (key === 'LOG_FALLBACK_CONSOLE') return 'false'; // Disable console to isolate file log
-          if (key === 'APP_NAME') return 'test-app';
-          if (key === 'NODE_ENV') return 'test';
-          return 'test';
-        });
-        const fileService = new LogTransportService(mockConfigService);
-        fileService.onModuleInit(); // To setup writestream
-
-        // Use a fixed timestamp for predictable output if needed, or rely on expect.any(String) for dynamic parts
-        const fixedTimestamp = new Date().toISOString();
-        const testLogData = { message: 'test log', level: 'info', timestamp: fixedTimestamp };
-        fileService.sendLog(testLogData);
-
-        const currentMockWriteStream = (fs.createWriteStream as jest.Mock).mock.results.find(r => r.type === 'return')?.value;
-
-        // Simplemente verificar que se llamó a write, sin comprobar los argumentos exactos
-        expect(currentMockWriteStream.write).toHaveBeenCalled();
+      (mockConfigService.get as jest.Mock).mockImplementation((key: string) => {
+        if (key === 'LOG_TO_FILE') return 'true';
+        if (key === 'LOG_FALLBACK_CONSOLE') return 'false'; // Disable console to isolate file log
+        if (key === 'APP_NAME') return 'test-app';
+        if (key === 'NODE_ENV') return 'test';
+        return 'test';
       });
+      const fileService = new LogTransportService(mockConfigService);
+      fileService.onModuleInit(); // To setup writestream
+
+      // Use a fixed timestamp for predictable output if needed, or rely on expect.any(String) for dynamic parts
+      const fixedTimestamp = new Date().toISOString();
+      const testLogData = {
+        message: 'test log',
+        level: 'info',
+        timestamp: fixedTimestamp,
+      };
+      fileService.sendLog(testLogData);
+
+      const currentMockWriteStream = (
+        fs.createWriteStream as jest.Mock
+      ).mock.results.find((r) => r.type === 'return')?.value;
+
+      // Simplemente verificar que se llamó a write, sin comprobar los argumentos exactos
+      expect(currentMockWriteStream.write).toHaveBeenCalled();
+    });
 
     // More tests for Logstash connection, queuing, errors, retries, etc.
   });
@@ -212,5 +244,4 @@ describe('LogTransportService', () => {
   // TODO: Add tests for file rotation (might require mocking date/time)
   // TODO: Add tests for getStats() method
   // TODO: Test onModuleDestroy to ensure client and stream cleanup
-
 });

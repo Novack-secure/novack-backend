@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
@@ -13,52 +18,56 @@ export class WsJwtGuard implements CanActivate {
     @InjectRepository(Employee)
     private employeeRepository: Repository<Employee>,
     @InjectRepository(Visitor)
-    private visitorRepository: Repository<Visitor>
+    private visitorRepository: Repository<Visitor>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const client: Socket = context.switchToWs().getClient();
     const token = this.extractTokenFromHeader(client);
-    
+
     if (!token) {
       throw new WsException('Token no proporcionado');
     }
-    
+
     try {
       const payload = await this.jwtService.verifyAsync(token);
-      
+
       // Guardar información del usuario en el cliente para usarlo después
       const userType = payload.userType || 'employee'; // Por defecto asumimos que es un empleado
       let user;
-      
+
       // Obtener información del usuario según su tipo
       if (userType === 'employee') {
-        user = await this.employeeRepository.findOne({ where: { id: payload.sub } });
+        user = await this.employeeRepository.findOne({
+          where: { id: payload.sub },
+        });
         if (!user) {
           throw new WsException('Empleado no encontrado');
         }
       } else {
-        user = await this.visitorRepository.findOne({ where: { id: payload.sub } });
+        user = await this.visitorRepository.findOne({
+          where: { id: payload.sub },
+        });
         if (!user) {
           throw new WsException('Visitante no encontrado');
         }
       }
-      
+
       // Guardar datos del usuario autenticado en el contexto
       const wsContext = context.switchToWs();
       wsContext.getData().user = {
         id: payload.sub,
         userType,
-        ...user
+        ...user,
       };
-      
+
       // También guardar en el socket para uso futuro
       client['user'] = {
         id: payload.sub,
         userType,
-        ...user
+        ...user,
       };
-      
+
       return true;
     } catch (e) {
       throw new WsException('Token inválido: ' + e.message);
@@ -71,7 +80,7 @@ export class WsJwtGuard implements CanActivate {
       client.handshake.query.token ||
       client.handshake.auth?.token ||
       client.handshake.headers.authorization?.split(' ')[1];
-    
+
     return token;
   }
-} 
+}

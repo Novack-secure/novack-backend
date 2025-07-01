@@ -1,4 +1,10 @@
-import { Module, Global, NestModule, MiddlewareConsumer, Logger } from '@nestjs/common';
+import {
+  Module,
+  Global,
+  NestModule,
+  MiddlewareConsumer,
+  Logger,
+} from '@nestjs/common';
 import { StructuredLoggerService } from './structured-logger.service';
 import { CorrelationIdMiddleware } from './correlation-id.middleware';
 import { RequestLoggingMiddleware } from './request-logging.middleware'; // Import new middleware
@@ -16,11 +22,7 @@ import { ConfigModule } from '@nestjs/config';
     // because it will be instantiated by NestJS when consumer.apply() is called.
     // However, StructuredLoggerService needs to be available for its constructor.
   ],
-  exports: [
-    StructuredLoggerService,
-    LogTransportService,
-    Logger
-  ],
+  exports: [StructuredLoggerService, LogTransportService, Logger],
 })
 export class LoggingModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

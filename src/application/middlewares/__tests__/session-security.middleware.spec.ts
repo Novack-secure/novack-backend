@@ -25,20 +25,29 @@ describe('SessionSecurityMiddleware', () => {
     middleware.use(mockRequest as Request, mockResponse as Response, mockNext);
 
     // Verificar
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('X-Frame-Options', 'DENY');
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('X-XSS-Protection', '1; mode=block');
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('X-Content-Type-Options', 'nosniff');
     expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      'Strict-Transport-Security', 
-      'max-age=31536000; includeSubDomains; preload'
+      'X-Frame-Options',
+      'DENY',
     );
     expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      'Referrer-Policy', 
-      'no-referrer-when-downgrade'
+      'X-XSS-Protection',
+      '1; mode=block',
     );
     expect(mockResponse.setHeader).toHaveBeenCalledWith(
-      'Permissions-Policy', 
-      'camera=(), microphone=(), geolocation=()'
+      'X-Content-Type-Options',
+      'nosniff',
+    );
+    expect(mockResponse.setHeader).toHaveBeenCalledWith(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains; preload',
+    );
+    expect(mockResponse.setHeader).toHaveBeenCalledWith(
+      'Referrer-Policy',
+      'no-referrer-when-downgrade',
+    );
+    expect(mockResponse.setHeader).toHaveBeenCalledWith(
+      'Permissions-Policy',
+      'camera=(), microphone=(), geolocation=()',
     );
     expect(mockNext).toHaveBeenCalled();
   });
@@ -46,9 +55,9 @@ describe('SessionSecurityMiddleware', () => {
   it('should call next function', () => {
     // Ejecutar
     middleware.use(mockRequest as Request, mockResponse as Response, mockNext);
-    
+
     // Verificar
     expect(mockNext).toHaveBeenCalled();
     expect(mockNext.mock.calls.length).toBe(1);
   });
-}); 
+});

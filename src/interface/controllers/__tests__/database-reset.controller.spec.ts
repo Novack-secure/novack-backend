@@ -49,19 +49,23 @@ describe('DatabaseResetController', () => {
 
   describe('resetDatabase', () => {
     it('should return success when reset is successful with valid secret key', async () => {
-      const result = await controller.resetDatabase({ secretKey: 'test-secret-key' });
-      
+      const result = await controller.resetDatabase({
+        secretKey: 'test-secret-key',
+      });
+
       expect(result.success).toBe(true);
       expect(result.status).toBe(HttpStatus.OK);
-      expect(mockDataSource.query).toHaveBeenCalledTimes(5); // 2 para FK checks + 3 tablas 
-      
+      expect(mockDataSource.query).toHaveBeenCalledTimes(5); // 2 para FK checks + 3 tablas
+
       // Verificar que se ignoró la tabla de migraciones
-      expect(mockDataSource.query).not.toHaveBeenCalledWith('TRUNCATE TABLE `migrations`');
+      expect(mockDataSource.query).not.toHaveBeenCalledWith(
+        'TRUNCATE TABLE `migrations`',
+      );
     });
 
     it('should return error when secret key is invalid', async () => {
       const result = await controller.resetDatabase({ secretKey: 'wrong-key' });
-      
+
       expect(result.success).toBe(false);
       expect(result.status).toBe(HttpStatus.UNAUTHORIZED);
       expect(mockDataSource.query).not.toHaveBeenCalled();
@@ -69,22 +73,28 @@ describe('DatabaseResetController', () => {
 
     it('should not allow reset in production environment', async () => {
       process.env.NODE_ENV = 'production';
-      
-      const result = await controller.resetDatabase({ secretKey: 'test-secret-key' });
-      
+
+      const result = await controller.resetDatabase({
+        secretKey: 'test-secret-key',
+      });
+
       expect(result.success).toBe(false);
       expect(result.status).toBe(HttpStatus.FORBIDDEN);
       expect(mockDataSource.query).not.toHaveBeenCalled();
     });
 
     it('should handle database errors gracefully', async () => {
-      mockDataSource.query = jest.fn().mockRejectedValueOnce(new Error('Database error'));
-      
-      const result = await controller.resetDatabase({ secretKey: 'test-secret-key' });
-      
+      mockDataSource.query = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('Database error'));
+
+      const result = await controller.resetDatabase({
+        secretKey: 'test-secret-key',
+      });
+
       expect(result.success).toBe(false);
       expect(result.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
       expect(result.message).toContain('Error al limpiar la base de datos');
     });
   });
-}); 
+});

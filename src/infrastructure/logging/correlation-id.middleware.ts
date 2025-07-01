@@ -1,18 +1,21 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { StructuredLoggerService, LogContext } from './structured-logger.service';
+import {
+  StructuredLoggerService,
+  LogContext,
+} from './structured-logger.service';
 
 @Injectable()
 export class CorrelationIdMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
     // Obtener correlationId del header o crear uno nuevo
-    const correlationId = 
-      req.headers['x-correlation-id'] as string || 
+    const correlationId =
+      (req.headers['x-correlation-id'] as string) ||
       StructuredLoggerService.createCorrelationId();
-    
+
     // Establecer el correlationId en los headers de respuesta
     res.setHeader('x-correlation-id', correlationId);
-    
+
     // Crear contexto de log con información de la solicitud
     const logContext: LogContext = {
       correlationId,
@@ -32,4 +35,4 @@ export class CorrelationIdMiddleware implements NestMiddleware {
       next();
     });
   }
-} 
+}

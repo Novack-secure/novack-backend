@@ -113,7 +113,10 @@ export class VisitorService {
     try {
       const availableCards = await this.cardService.findAvailableCards();
       if (availableCards.length > 0) {
-        await this.cardService.assignToVisitor(availableCards[0].id, savedVisitor.id);
+        await this.cardService.assignToVisitor(
+          availableCards[0].id,
+          savedVisitor.id,
+        );
         this.logger.log('Card assigned to visitor', undefined, {
           visitorId: savedVisitor.id,
           cardId: availableCards[0].id,
@@ -154,7 +157,9 @@ export class VisitorService {
   }
 
   async update(id: string, updateVisitorDto: UpdateVisitorDto) {
-    this.logger.log('Attempting to update visitor/appointment', undefined, { visitorId: id });
+    this.logger.log('Attempting to update visitor/appointment', undefined, {
+      visitorId: id,
+    });
     const visitor = await this.findOne(id);
 
     if (!visitor.appointments || visitor.appointments.length === 0) {
@@ -196,24 +201,35 @@ export class VisitorService {
     await this.visitorRepository.save(visitor);
 
     // Actualizar cita
-    if (updateVisitorDto.appointment) appointment.title = updateVisitorDto.appointment;
-    if (updateVisitorDto.appointment_description) appointment.description = updateVisitorDto.appointment_description;
-    if (updateVisitorDto.complaints) appointment.complaints = updateVisitorDto.complaints;
-    if (updateVisitorDto.check_in_time) appointment.check_in_time = updateVisitorDto.check_in_time;
-    if (updateVisitorDto.check_out_time) appointment.check_out_time = updateVisitorDto.check_out_time;
+    if (updateVisitorDto.appointment)
+      appointment.title = updateVisitorDto.appointment;
+    if (updateVisitorDto.appointment_description)
+      appointment.description = updateVisitorDto.appointment_description;
+    if (updateVisitorDto.complaints)
+      appointment.complaints = updateVisitorDto.complaints;
+    if (updateVisitorDto.check_in_time)
+      appointment.check_in_time = updateVisitorDto.check_in_time;
+    if (updateVisitorDto.check_out_time)
+      appointment.check_out_time = updateVisitorDto.check_out_time;
     if (updateVisitorDto.state) appointment.status = updateVisitorDto.state;
 
     await this.appointmentRepository.save(appointment);
 
-    this.logger.log('Visitor/appointment updated successfully', undefined, { visitorId: id });
+    this.logger.log('Visitor/appointment updated successfully', undefined, {
+      visitorId: id,
+    });
     return this.findOne(id);
   }
 
   async remove(id: string) {
-    this.logger.log('Attempting to delete visitor', undefined, { visitorId: id });
+    this.logger.log('Attempting to delete visitor', undefined, {
+      visitorId: id,
+    });
     const visitor = await this.findOne(id); // Ensures visitor exists before attempting removal
     await this.visitorRepository.remove(visitor);
-    this.logger.log('Visitor deleted successfully', undefined, { visitorId: id });
+    this.logger.log('Visitor deleted successfully', undefined, {
+      visitorId: id,
+    });
     // The original method returns the result of remove, which might be void or the removed entity
     // For logging purposes, we've logged success. The actual return type is determined by TypeORM.
     // No explicit return here as the original was `return await this.visitorRepository.remove(visitor);`
@@ -224,11 +240,15 @@ export class VisitorService {
   }
 
   async checkOut(id: string) {
-    this.logger.log('Visitor check-out initiated', undefined, { visitorId: id });
+    this.logger.log('Visitor check-out initiated', undefined, {
+      visitorId: id,
+    });
     const visitor = await this.findOne(id);
 
     if (visitor.state === 'completado') {
-      throw new BadRequestException('El visitante ya ha realizado el check-out');
+      throw new BadRequestException(
+        'El visitante ya ha realizado el check-out',
+      );
     }
 
     if (!visitor.appointments || visitor.appointments.length === 0) {
@@ -256,10 +276,14 @@ export class VisitorService {
     // Liberar la tarjeta si tiene una asignada
     if (visitor.card) {
       await this.cardService.unassignFromVisitor(visitor.card.id);
-      this.logger.log('Card unassigned from visitor during check-out', undefined, {
-        visitorId: visitor.id,
-        cardId: visitor.card.id,
-      });
+      this.logger.log(
+        'Card unassigned from visitor during check-out',
+        undefined,
+        {
+          visitorId: visitor.id,
+          cardId: visitor.card.id,
+        },
+      );
     }
 
     // Enviar email de checkout
@@ -321,4 +345,3 @@ export class VisitorService {
     return visitor; // Opcional: devolver el visitante actualizado
   }
 }
-

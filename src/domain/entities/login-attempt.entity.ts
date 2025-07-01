@@ -1,4 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+} from 'typeorm';
 
 /**
  * Entidad para almacenar los intentos de inicio de sesión
@@ -26,4 +31,4 @@ export class LoginAttempt {
 
   @CreateDateColumn()
   created_at: Date;
-} 
+}

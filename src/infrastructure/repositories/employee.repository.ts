@@ -1,6 +1,6 @@
 /**
  * Implementación del repositorio de empleados
- * 
+ *
  * Esta clase implementa la interfaz IEmployeeRepository utilizando TypeORM
  * como tecnología de acceso a datos.
  */
@@ -23,54 +23,59 @@ export class EmployeeRepository implements IEmployeeRepository {
 
   async findAll(): Promise<Employee[]> {
     return this.employeeEntityRepository.find({
-      relations: ['supplier', 'credentials']
+      relations: ['supplier', 'credentials'],
     });
   }
 
   async findById(id: string): Promise<Employee | null> {
     return this.employeeEntityRepository.findOne({
       where: { id },
-      relations: ['supplier', 'credentials']
+      relations: ['supplier', 'credentials'],
     });
   }
 
   async findByEmail(email: string): Promise<Employee | null> {
     return this.employeeEntityRepository.findOne({
       where: { email },
-      relations: ['supplier', 'credentials']
+      relations: ['supplier', 'credentials'],
     });
   }
 
-  async findByEmailWithCredentialsAndPhone(email: string): Promise<Employee | null> {
+  async findByEmailWithCredentialsAndPhone(
+    email: string,
+  ): Promise<Employee | null> {
     return this.employeeEntityRepository.findOne({
       where: { email },
-      relations: ['credentials']
+      relations: ['credentials'],
     });
   }
 
   async findByIdWithCredentialsAndPhone(id: string): Promise<Employee | null> {
     return this.employeeEntityRepository.findOne({
       where: { id },
-      relations: ['credentials']
+      relations: ['credentials'],
     });
   }
 
   async findByIdWithCredentials(id: string): Promise<Employee | null> {
     return this.employeeEntityRepository.findOne({
       where: { id },
-      relations: ['credentials']
+      relations: ['credentials'],
     });
   }
 
   async create(employeeData: Partial<Employee>): Promise<Employee> {
     const newEmployee = this.employeeEntityRepository.create(employeeData);
-    
+
     // Si se proporcionan credenciales, crearlas
     if (employeeData.credentials) {
-      const credentials = this.credentialsRepository.create(employeeData.credentials);
-      newEmployee.credentials = await this.credentialsRepository.save(credentials);
+      const credentials = this.credentialsRepository.create(
+        employeeData.credentials,
+      );
+      newEmployee.credentials =
+        await this.credentialsRepository.save(credentials);
     }
-    
+
     return this.employeeEntityRepository.save(newEmployee);
   }
 
@@ -81,11 +86,11 @@ export class EmployeeRepository implements IEmployeeRepository {
       if (employee?.credentials) {
         await this.credentialsRepository.update(
           employee.credentials.id,
-          employeeData.credentials
+          employeeData.credentials,
         );
       }
     }
-    
+
     await this.employeeEntityRepository.update(id, employeeData);
     return this.findById(id);
   }
@@ -98,29 +103,35 @@ export class EmployeeRepository implements IEmployeeRepository {
   async findBySupplier(supplierId: string): Promise<Employee[]> {
     return this.employeeEntityRepository.find({
       where: { supplier: { id: supplierId } },
-      relations: ['supplier', 'credentials']
+      relations: ['supplier', 'credentials'],
     });
   }
 
   // Métodos específicos para credenciales
-  async updateCredentials(employeeId: string, credentials: Partial<EmployeeCredentials>): Promise<void> {
+  async updateCredentials(
+    employeeId: string,
+    credentials: Partial<EmployeeCredentials>,
+  ): Promise<void> {
     const employee = await this.findById(employeeId);
     if (employee?.credentials) {
-      await this.credentialsRepository.update(employee.credentials.id, credentials);
+      await this.credentialsRepository.update(
+        employee.credentials.id,
+        credentials,
+      );
     }
   }
 
   async findByVerificationToken(token: string): Promise<Employee | null> {
     return this.employeeEntityRepository.findOne({
       where: { credentials: { verification_token: token } },
-      relations: ['credentials']
+      relations: ['credentials'],
     });
   }
 
   async findByResetToken(token: string): Promise<Employee | null> {
     return this.employeeEntityRepository.findOne({
       where: { credentials: { reset_token: token } },
-      relations: ['credentials']
+      relations: ['credentials'],
     });
   }
 

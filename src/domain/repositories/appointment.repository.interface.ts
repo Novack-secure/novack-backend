@@ -37,7 +37,6 @@ export interface IAppointmentRepository {
    */
   findBySupplierId(supplierId: string): Promise<Appointment[]>;
 
-
   /**
    * Removes an appointment entity.
    * @param appointment The appointment entity to remove.

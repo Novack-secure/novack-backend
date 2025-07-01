@@ -14,7 +14,11 @@ export class GetVisitorDetailsUseCase {
   }
 
   async execute(id: string): Promise<Visitor> {
-    this.logger.log(`Attempting to fetch visitor details for id: ${id}`, undefined, { visitorId: id });
+    this.logger.log(
+      `Attempting to fetch visitor details for id: ${id}`,
+      undefined,
+      { visitorId: id },
+    );
 
     // It's common for repository findById methods to specify relations to load.
     // Assuming the IVisitorRepository.findById method handles loading necessary relations
@@ -23,15 +27,21 @@ export class GetVisitorDetailsUseCase {
     const visitor = await this.visitorRepository.findById(id);
 
     if (!visitor) {
-      this.logger.warn(`Visitor not found with id: ${id}`, undefined, { visitorId: id });
+      this.logger.warn(`Visitor not found with id: ${id}`, undefined, {
+        visitorId: id,
+      });
       throw new NotFoundException(`Visitor with ID "${id}" not found`);
     }
 
-    this.logger.log(`Successfully fetched visitor details for id: ${id}`, undefined, {
-      visitorId: id,
-      // Optionally log some non-sensitive details of the visitor if useful for this log level
-      // visitorName: visitor.name
-    });
+    this.logger.log(
+      `Successfully fetched visitor details for id: ${id}`,
+      undefined,
+      {
+        visitorId: id,
+        // Optionally log some non-sensitive details of the visitor if useful for this log level
+        // visitorName: visitor.name
+      },
+    );
     return visitor;
   }
 }

@@ -24,7 +24,7 @@ import { IsNotEmpty, IsUUID, Length } from 'class-validator';
 export class LoginSmsVerifyDto {
   @ApiProperty({
     description: 'User ID of the user attempting to verify SMS OTP',
-    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   })
   @IsNotEmpty({ message: 'User ID cannot be empty' })
   @IsUUID('4', { message: 'User ID must be a valid UUID' })
@@ -32,7 +32,7 @@ export class LoginSmsVerifyDto {
 
   @ApiProperty({
     example: '123456',
-    description: 'The 6-digit OTP code sent via SMS'
+    description: 'The 6-digit OTP code sent via SMS',
   })
   @IsNotEmpty({ message: 'OTP code cannot be empty' })
   @IsString()

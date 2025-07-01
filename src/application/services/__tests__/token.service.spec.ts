@@ -42,12 +42,16 @@ describe('TokenService', () => {
 
     mockRefreshTokenRepository = {
       create: jest.fn().mockImplementation((entity) => entity),
-      save: jest.fn().mockImplementation((entity) => Promise.resolve({
-        id: 'refresh-token-id',
-        ...entity,
-      })),
+      save: jest.fn().mockImplementation((entity) =>
+        Promise.resolve({
+          id: 'refresh-token-id',
+          ...entity,
+        }),
+      ),
       findOne: jest.fn(),
-      update: jest.fn().mockImplementation(() => Promise.resolve({ affected: 1 })),
+      update: jest
+        .fn()
+        .mockImplementation(() => Promise.resolve({ affected: 1 })),
     };
 
     mockEmployeeRepository = {
@@ -97,15 +101,18 @@ describe('TokenService', () => {
       position: null,
       department: null,
       profile_image_url: null,
-      supplier: { id: 'supplier-id', supplier_name: 'Mock Supplier' } as Supplier,
+      supplier: {
+        id: 'supplier-id',
+        supplier_name: 'Mock Supplier',
+      } as Supplier,
       credentials: {
         id: 'cred-id',
         is_email_verified: true,
         two_factor_enabled: false,
         password_hash: 'hashedpassword', // Required
-        is_sms_2fa_enabled: false,     // Required (has default)
-        phone_number_verified: false,  // Required (has default)
-        employee_id: 'employee-id',    // Required
+        is_sms_2fa_enabled: false, // Required (has default)
+        phone_number_verified: false, // Required (has default)
+        employee_id: 'employee-id', // Required
         // Optional / Nullable fields
         two_factor_secret: null,
         backup_codes: [],
@@ -116,7 +123,7 @@ describe('TokenService', () => {
         sms_otp_code: null,
         sms_otp_code_expires_at: null,
         last_login: null,
-        employee: null // Circular, set to null
+        employee: null, // Circular, set to null
       } as EmployeeCredentials,
       cards: [],
       chat_rooms: [],
@@ -131,15 +138,19 @@ describe('TokenService', () => {
 
     it('should generate access and refresh tokens', async () => {
       // Temporarily set employee to null to satisfy EmployeeCredentials.employee relation if it's strict
-      if (mockFullEmployee.credentials) (mockFullEmployee.credentials as any).employee = null;
+      if (mockFullEmployee.credentials)
+        (mockFullEmployee.credentials as any).employee = null;
 
-      const result = await service.generateTokens(mockFullEmployee, mockRequest);
+      const result = await service.generateTokens(
+        mockFullEmployee,
+        mockRequest,
+      );
 
       expect(result).toHaveProperty('access_token');
       expect(result).toHaveProperty('refresh_token');
       expect(result).toHaveProperty('expires_in');
       expect(result).toHaveProperty('token_type', 'Bearer');
-      
+
       expect(mockJwtService.sign).toHaveBeenCalled();
       expect(mockRefreshTokenRepository.create).toHaveBeenCalled();
       expect(mockRefreshTokenRepository.save).toHaveBeenCalled();
@@ -167,15 +178,18 @@ describe('TokenService', () => {
         position: null,
         department: null,
         profile_image_url: null,
-        supplier: { id: 'supplier-id', supplier_name: 'Mock Supplier' } as Supplier,
+        supplier: {
+          id: 'supplier-id',
+          supplier_name: 'Mock Supplier',
+        } as Supplier,
         credentials: {
           id: 'cred-id',
           is_email_verified: true,
           two_factor_enabled: false,
           password_hash: 'hashedpassword', // Required
-          is_sms_2fa_enabled: false,     // Required (has default)
-          phone_number_verified: false,  // Required (has default)
-          employee_id: 'employee-id',    // Required
+          is_sms_2fa_enabled: false, // Required (has default)
+          phone_number_verified: false, // Required (has default)
+          employee_id: 'employee-id', // Required
           // Optional / Nullable fields
           two_factor_secret: null,
           backup_codes: [],
@@ -186,7 +200,7 @@ describe('TokenService', () => {
           sms_otp_code: null,
           sms_otp_code_expires_at: null,
           last_login: null,
-          employee: null // Circular, set to null
+          employee: null, // Circular, set to null
         } as EmployeeCredentials,
         cards: [],
         chat_rooms: [],
@@ -199,7 +213,9 @@ describe('TokenService', () => {
     });
 
     it('should refresh tokens when valid refresh token is provided', async () => {
-      (mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce(mockStoredToken);
+      (mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce(
+        mockStoredToken,
+      );
       jest.spyOn(service, 'generateTokens').mockResolvedValueOnce({
         access_token: 'new-access-token',
         refresh_token: 'new-refresh-token',
@@ -215,11 +231,13 @@ describe('TokenService', () => {
     });
 
     it('should throw UnauthorizedException for invalid refresh token', async () => {
-      (mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce(null);
+      (mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce(
+        null,
+      );
 
-      await expect(service.refreshAccessToken(mockRefreshToken))
-        .rejects
-        .toThrow(UnauthorizedException);
+      await expect(
+        service.refreshAccessToken(mockRefreshToken),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException for revoked token', async () => {
@@ -228,9 +246,9 @@ describe('TokenService', () => {
         is_revoked: true,
       });
 
-      await expect(service.refreshAccessToken(mockRefreshToken))
-        .rejects
-        .toThrow(UnauthorizedException);
+      await expect(
+        service.refreshAccessToken(mockRefreshToken),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException for expired token', async () => {
@@ -239,9 +257,9 @@ describe('TokenService', () => {
         expires_at: new Date(Date.now() - 1000), // Expired token
       });
 
-      await expect(service.refreshAccessToken(mockRefreshToken))
-        .rejects
-        .toThrow(UnauthorizedException);
+      await expect(
+        service.refreshAccessToken(mockRefreshToken),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -250,7 +268,9 @@ describe('TokenService', () => {
 
     it('should return payload for valid token', async () => {
       const mockPayload = { sub: 'test-id' };
-      (mockJwtService.verifyAsync as jest.Mock).mockResolvedValueOnce(mockPayload);
+      (mockJwtService.verifyAsync as jest.Mock).mockResolvedValueOnce(
+        mockPayload,
+      );
       (mockEmployeeRepository.exists as jest.Mock).mockResolvedValueOnce(true);
 
       const result = await service.validateToken(mockToken);
@@ -259,21 +279,25 @@ describe('TokenService', () => {
     });
 
     it('should throw UnauthorizedException for invalid token', async () => {
-      (mockJwtService.verifyAsync as jest.Mock).mockRejectedValueOnce(new Error());
+      (mockJwtService.verifyAsync as jest.Mock).mockRejectedValueOnce(
+        new Error(),
+      );
 
-      await expect(service.validateToken(mockToken))
-        .rejects
-        .toThrow(UnauthorizedException);
+      await expect(service.validateToken(mockToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if user no longer exists', async () => {
       const mockPayload = { sub: 'test-id' };
-      (mockJwtService.verifyAsync as jest.Mock).mockResolvedValueOnce(mockPayload);
+      (mockJwtService.verifyAsync as jest.Mock).mockResolvedValueOnce(
+        mockPayload,
+      );
       (mockEmployeeRepository.exists as jest.Mock).mockResolvedValueOnce(false);
 
-      await expect(service.validateToken(mockToken))
-        .rejects
-        .toThrow(UnauthorizedException);
+      await expect(service.validateToken(mockToken)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
-}); 
+});

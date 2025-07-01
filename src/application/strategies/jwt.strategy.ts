@@ -22,4 +22,4 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       supplier_id: payload.supplier_id,
     };
   }
-} 
+}

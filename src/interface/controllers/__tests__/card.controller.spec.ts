@@ -56,7 +56,8 @@ describe('CardController', () => {
 
     controller = module.get<CardController>(CardController);
     cardService = module.get<CardService>(CardService);
-    cardSchedulerService = module.get<CardSchedulerService>(CardSchedulerService);
+    cardSchedulerService =
+      module.get<CardSchedulerService>(CardSchedulerService);
   });
 
   it('should be defined', () => {
@@ -72,14 +73,14 @@ describe('CardController', () => {
         longitude: -74.006,
         accuracy: 10.5,
       };
-      
+
       const savedLocation = {
         id: 'loc456',
         card: { id: cardId },
         ...locationDto,
         timestamp: new Date(),
       };
-      
+
       mockCardService.recordLocation.mockResolvedValue(savedLocation);
 
       // Call controller
@@ -102,16 +103,16 @@ describe('CardController', () => {
         latitude: 40.7128,
         longitude: -74.006,
       };
-      
+
       mockCardService.recordLocation.mockRejectedValue(
-        new BadRequestException('La tarjeta no existe')
+        new BadRequestException('La tarjeta no existe'),
       );
 
       // Call controller
-      await expect(controller.recordLocation(cardId, locationDto)).rejects.toThrow(
-        BadRequestException
-      );
-      
+      await expect(
+        controller.recordLocation(cardId, locationDto),
+      ).rejects.toThrow(BadRequestException);
+
       expect(mockCardService.recordLocation).toHaveBeenCalledWith(
         cardId,
         locationDto.latitude,
@@ -141,7 +142,7 @@ describe('CardController', () => {
           timestamp: new Date(),
         },
       ];
-      
+
       mockCardService.findLocationHistory.mockResolvedValue(locations);
 
       // Call controller
@@ -159,7 +160,7 @@ describe('CardController', () => {
       const latitude = 40.7128;
       const longitude = -74.006;
       const radius = 100;
-      
+
       const nearbyCards = [
         {
           id: 'card1',
@@ -171,16 +172,20 @@ describe('CardController', () => {
         {
           id: 'card2',
           card_number: 'CARD-456',
-          latitude: 40.7130,
+          latitude: 40.713,
           longitude: -74.008,
           distance_meters: 75,
         },
       ];
-      
+
       mockCardService.getNearbyCards.mockResolvedValue(nearbyCards);
 
       // Call controller
-      const result = await controller.findNearbyCards(latitude, longitude, radius);
+      const result = await controller.findNearbyCards(
+        latitude,
+        longitude,
+        radius,
+      );
 
       // Verify
       expect(mockCardService.getNearbyCards).toHaveBeenCalledWith(
@@ -196,7 +201,7 @@ describe('CardController', () => {
       const latitude = 40.7128;
       const longitude = -74.006;
       const defaultRadius = 100; // Default value in controller
-      
+
       mockCardService.getNearbyCards.mockResolvedValue([]);
 
       // Call controller without radius
@@ -222,7 +227,7 @@ describe('CardController', () => {
         accuracy: 10.5,
         timestamp: new Date(),
       };
-      
+
       mockCardService.getLastLocation.mockResolvedValue(location);
 
       // Call controller
@@ -236,7 +241,7 @@ describe('CardController', () => {
     it('should return null when no location is found', async () => {
       // Mock setup
       const cardId = 'card123';
-      
+
       mockCardService.getLastLocation.mockResolvedValue(null);
 
       // Call controller
@@ -247,4 +252,4 @@ describe('CardController', () => {
       expect(result).toBeNull();
     });
   });
-}); 
+});

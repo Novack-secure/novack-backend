@@ -76,7 +76,10 @@ describe('RedisDatabaseController', () => {
       const result = await controller.getChatMessages(roomId, limit);
 
       // Verify
-      expect(mockRedisDatabaseService.getChatMessages).toHaveBeenCalledWith(roomId, limit);
+      expect(mockRedisDatabaseService.getChatMessages).toHaveBeenCalledWith(
+        roomId,
+        limit,
+      );
       expect(result).toEqual(messages);
     });
   });
@@ -117,7 +120,9 @@ describe('RedisDatabaseController', () => {
       const result = await controller.getCardLocation(cardId);
 
       // Verify
-      expect(mockRedisDatabaseService.getCardLocation).toHaveBeenCalledWith(cardId);
+      expect(mockRedisDatabaseService.getCardLocation).toHaveBeenCalledWith(
+        cardId,
+      );
       expect(result).toEqual(location);
     });
   });
@@ -140,7 +145,11 @@ describe('RedisDatabaseController', () => {
       mockRedisDatabaseService.getNearbyCards.mockResolvedValue(nearbyCards);
 
       // Call controller
-      const result = await controller.getNearbyCards(latitude, longitude, radius);
+      const result = await controller.getNearbyCards(
+        latitude,
+        longitude,
+        radius,
+      );
 
       // Verify
       expect(mockRedisDatabaseService.getNearbyCards).toHaveBeenCalledWith(
@@ -164,4 +173,4 @@ describe('RedisDatabaseController', () => {
       expect(mockRedisDatabaseService.flushAll).toHaveBeenCalled();
     });
   });
-}); 
+});

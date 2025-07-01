@@ -26,10 +26,9 @@ import { SmsModule } from './sms.module';
     EmployeeRepository,
     {
       provide: 'IEmployeeRepository',
-      useClass: EmployeeRepository
-    }
+      useClass: EmployeeRepository,
+    },
   ],
   exports: [TwoFactorAuthService],
 })
 export class TwoFactorAuthModule {}
-

@@ -17,23 +17,37 @@ export class GetEmployeesBySupplierUseCase {
   }
 
   async execute(supplierId: string): Promise<Employee[]> {
-    this.logger.log(`Attempting to fetch employees for supplier id: ${supplierId}`, undefined, { supplierId });
+    this.logger.log(
+      `Attempting to fetch employees for supplier id: ${supplierId}`,
+      undefined,
+      { supplierId },
+    );
 
     // Verify supplier exists to provide a clear error if the supplier ID is invalid.
     const supplier = await this.supplierRepository.findById(supplierId);
     if (!supplier) {
-      this.logger.warn(`Supplier not found when attempting to fetch its employees: ${supplierId}`, undefined, { supplierId });
-      throw new NotFoundException(`Supplier with ID "${supplierId}" not found.`);
+      this.logger.warn(
+        `Supplier not found when attempting to fetch its employees: ${supplierId}`,
+        undefined,
+        { supplierId },
+      );
+      throw new NotFoundException(
+        `Supplier with ID "${supplierId}" not found.`,
+      );
     }
 
     // The IEmployeeRepository.findBySupplier method should handle loading necessary relations
     // if they are expected as part of this list view (e.g., 'credentials' for some status flags, though unlikely for a list).
     const employees = await this.employeeRepository.findBySupplier(supplierId);
 
-    this.logger.log(`Successfully fetched ${employees.length} employees for supplier id: ${supplierId}`, undefined, {
-      supplierId,
-      count: employees.length
-    });
+    this.logger.log(
+      `Successfully fetched ${employees.length} employees for supplier id: ${supplierId}`,
+      undefined,
+      {
+        supplierId,
+        count: employees.length,
+      },
+    );
     return employees;
   }
 }

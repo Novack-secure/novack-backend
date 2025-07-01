@@ -13,14 +13,22 @@ export class DeleteEmployeeUseCase {
   }
 
   async execute(id: string): Promise<void> {
-    this.logger.log(`Attempting to delete employee with id: ${id}`, undefined, JSON.stringify({ employeeId: id }));
+    this.logger.log(
+      `Attempting to delete employee with id: ${id}`,
+      undefined,
+      JSON.stringify({ employeeId: id }),
+    );
 
     // First, verify the employee exists.
     // The findById method might also load relations if necessary for any pre-delete business logic,
     // though for a simple delete, just confirming existence is often enough.
     const employee = await this.employeeRepository.findById(id);
     if (!employee) {
-      this.logger.warn(`Employee not found for deletion with id: ${id}`, undefined, JSON.stringify({ employeeId: id }));
+      this.logger.warn(
+        `Employee not found for deletion with id: ${id}`,
+        undefined,
+        JSON.stringify({ employeeId: id }),
+      );
       throw new NotFoundException(`Employee with ID "${id}" not found`);
     }
 
@@ -36,7 +44,11 @@ export class DeleteEmployeeUseCase {
     // The existing EmployeeRepository.delete(id: string) is suitable.
     await this.employeeRepository.delete(id);
 
-    this.logger.log(`Successfully deleted employee with id: ${id}`, undefined, JSON.stringify({ employeeId: id }));
+    this.logger.log(
+      `Successfully deleted employee with id: ${id}`,
+      undefined,
+      JSON.stringify({ employeeId: id }),
+    );
   }
 
   // Example of a helper method for a business rule, if needed:

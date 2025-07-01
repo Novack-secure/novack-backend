@@ -132,7 +132,9 @@ export class SupplierController {
   @Patch(':id/profile-image')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('profileImage'))
-  @ApiOperation({ summary: 'Subir o actualizar imagen de perfil del proveedor' })
+  @ApiOperation({
+    summary: 'Subir o actualizar imagen de perfil del proveedor',
+  })
   @ApiParam({ name: 'id', description: 'ID UUID del proveedor', type: String })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -145,7 +147,11 @@ export class SupplierController {
     },
   })
   @ApiResponse({ status: 200, description: 'Imagen de perfil actualizada.' })
-  @ApiResponse({ status: 400, description: 'Archivo inválido, tipo no permitido o error de procesamiento.' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Archivo inválido, tipo no permitido o error de procesamiento.',
+  })
   @ApiResponse({ status: 404, description: 'Proveedor no encontrado.' })
   async uploadProfileImage(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -156,9 +162,13 @@ export class SupplierController {
       throw new BadRequestException('No se proporcionó ningún archivo.');
     }
 
-    const bucketName = this.configService.get<string>('AWS_S3_SUPPLIER_BUCKET_NAME');
+    const bucketName = this.configService.get<string>(
+      'AWS_S3_SUPPLIER_BUCKET_NAME',
+    );
     if (!bucketName) {
-      throw new Error('Nombre del bucket S3 para proveedores no configurado (AWS_S3_SUPPLIER_BUCKET_NAME).');
+      throw new Error(
+        'Nombre del bucket S3 para proveedores no configurado (AWS_S3_SUPPLIER_BUCKET_NAME).',
+      );
     }
 
     const destinationPath = `profile/`;
@@ -172,6 +182,9 @@ export class SupplierController {
 
     await this.supplierService.updateProfileImageUrl(id, imageUrl);
 
-    return { message: 'Imagen de perfil actualizada correctamente.', url: imageUrl };
+    return {
+      message: 'Imagen de perfil actualizada correctamente.',
+      url: imageUrl,
+    };
   }
 }

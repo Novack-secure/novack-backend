@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
 @Entity('audit_logs')
 export class AuditLog {
@@ -36,4 +42,4 @@ export class AuditLog {
   @CreateDateColumn({ name: 'timestamp' })
   @Index()
   timestamp: Date;
-} 
+}

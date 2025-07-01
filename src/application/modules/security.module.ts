@@ -18,9 +18,6 @@ import { SessionSecurityMiddleware } from '../middlewares/session-security.middl
 })
 export class SecurityModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(SessionSecurityMiddleware)
-      .forRoutes('*'); // Aplicar a todas las rutas
+    consumer.apply(SessionSecurityMiddleware).forRoutes('*'); // Aplicar a todas las rutas
   }
 }
-

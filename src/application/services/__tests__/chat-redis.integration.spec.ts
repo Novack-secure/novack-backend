@@ -2,7 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ChatService } from '../chat.service';
 import { RedisDatabaseService } from '../../../infrastructure/database/redis/redis.database.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { ChatRoom, ChatMessage, Employee, Visitor, Supplier } from '../../../domain/entities';
+import {
+  ChatRoom,
+  ChatMessage,
+  Employee,
+  Visitor,
+  Supplier,
+} from '../../../domain/entities';
 import { Logger, NotFoundException } from '@nestjs/common';
 
 // Enumerar los tipos de salas manualmente si no existe el módulo
@@ -13,7 +19,7 @@ enum ChatRoomType {
 
 describe('ChatService with Redis Integration', () => {
   let service: ChatService;
-  
+
   // Mocks para los repositorios
   const mockChatRoomRepository = {
     findOne: jest.fn(),
@@ -27,21 +33,21 @@ describe('ChatService with Redis Integration', () => {
       getMany: jest.fn().mockResolvedValue([]),
     })),
   };
-  
+
   const mockChatMessageRepository = {
     find: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
   };
-  
+
   const mockEmployeeRepository = {
     findOne: jest.fn(),
   };
-  
+
   const mockVisitorRepository = {
     findOne: jest.fn(),
   };
-  
+
   // Agregar el SupplierRepository faltante
   const mockSupplierRepository = {
     findOne: jest.fn(),
@@ -62,7 +68,7 @@ describe('ChatService with Redis Integration', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    
+
     // Configuración del módulo de pruebas
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -107,7 +113,7 @@ describe('ChatService with Redis Integration', () => {
       const roomId = 'room123';
       const userId = 'emp1';
       const userType = 'employee';
-      
+
       const cachedRoom = {
         id: roomId,
         name: 'Test Room',
@@ -115,7 +121,7 @@ describe('ChatService with Redis Integration', () => {
         employees: [{ id: userId }],
         visitors: [],
       };
-      
+
       const cachedMessages = [
         {
           id: 'msg1',
@@ -132,11 +138,13 @@ describe('ChatService with Redis Integration', () => {
           created_at: new Date().toISOString(),
         },
       ];
-      
+
       // Configurar mocks para simular caché disponible
       mockRedisDatabaseService.getChatRoom.mockResolvedValue(cachedRoom);
-      mockRedisDatabaseService.getChatMessages.mockResolvedValue(cachedMessages);
-      
+      mockRedisDatabaseService.getChatMessages.mockResolvedValue(
+        cachedMessages,
+      );
+
       // Este test no puede ejecutar el método real por las dependencias internas
       // Por lo tanto, vamos a verificar que los mocks se configuraron correctamente
       expect(mockRedisDatabaseService.getChatRoom).not.toHaveBeenCalled();
@@ -145,9 +153,11 @@ describe('ChatService with Redis Integration', () => {
       // En lugar de ejecutar el método real, verificamos que la configuración está correcta
       mockRedisDatabaseService.getChatRoom(roomId);
       mockRedisDatabaseService.getChatMessages(roomId);
-      
+
       expect(mockRedisDatabaseService.getChatRoom).toHaveBeenCalledWith(roomId);
-      expect(mockRedisDatabaseService.getChatMessages).toHaveBeenCalledWith(roomId);
+      expect(mockRedisDatabaseService.getChatMessages).toHaveBeenCalledWith(
+        roomId,
+      );
     });
 
     it('should fetch from database if not in cache and save to cache', async () => {
@@ -155,7 +165,7 @@ describe('ChatService with Redis Integration', () => {
       const roomId = 'room123';
       const userId = 'emp1';
       const userType = 'employee';
-      
+
       const dbRoom = {
         id: roomId,
         name: 'Test Room',
@@ -163,7 +173,7 @@ describe('ChatService with Redis Integration', () => {
         employees: [{ id: userId }],
         visitors: [],
       };
-      
+
       const dbMessages = [
         {
           id: 'msg1',
@@ -186,13 +196,13 @@ describe('ChatService with Redis Integration', () => {
       mockRedisDatabaseService.getChatMessages.mockResolvedValue(null);
       mockChatRoomRepository.findOne.mockResolvedValue(dbRoom);
       mockChatMessageRepository.find.mockResolvedValue(dbMessages);
-      
+
       // Este test no puede ejecutar el método real por las dependencias internas
       // Por lo tanto, vamos a verificar que los mocks se configuraron correctamente
       expect(mockRedisDatabaseService.getChatRoom).not.toHaveBeenCalled();
       expect(mockChatRoomRepository.findOne).not.toHaveBeenCalled();
       expect(mockChatMessageRepository.find).not.toHaveBeenCalled();
-      
+
       // En lugar de ejecutar el método real, verificamos que la configuración está correcta
       mockRedisDatabaseService.getChatRoom(roomId);
       mockChatRoomRepository.findOne({
@@ -203,7 +213,7 @@ describe('ChatService with Redis Integration', () => {
         where: { chat_room_id: roomId },
         order: { created_at: 'DESC' },
       });
-      
+
       expect(mockRedisDatabaseService.getChatRoom).toHaveBeenCalledWith(roomId);
       expect(mockChatRoomRepository.findOne).toHaveBeenCalled();
       expect(mockChatMessageRepository.find).toHaveBeenCalled();
@@ -217,7 +227,7 @@ describe('ChatService with Redis Integration', () => {
       const userId = 'emp1';
       const userType = 'employee';
       const content = 'Hello world';
-      
+
       const room = {
         id: roomId,
         name: 'Test Room',
@@ -225,7 +235,7 @@ describe('ChatService with Redis Integration', () => {
         employees: [{ id: userId }],
         visitors: [],
       };
-      
+
       const newMessage = {
         id: 'msg123',
         content,
@@ -244,7 +254,7 @@ describe('ChatService with Redis Integration', () => {
       expect(mockRedisDatabaseService.getChatRoom).not.toHaveBeenCalled();
       expect(mockChatMessageRepository.create).not.toHaveBeenCalled();
       expect(mockRedisDatabaseService.saveChatMessage).not.toHaveBeenCalled();
-      
+
       // En lugar de ejecutar el método real, verificamos que la configuración está correcta
       mockRedisDatabaseService.getChatRoom(roomId);
       mockChatMessageRepository.create({
@@ -253,7 +263,7 @@ describe('ChatService with Redis Integration', () => {
         sender_employee_id: userId,
       });
       mockRedisDatabaseService.saveChatMessage(roomId, newMessage);
-      
+
       expect(mockRedisDatabaseService.getChatRoom).toHaveBeenCalledWith(roomId);
       expect(mockChatMessageRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -262,7 +272,10 @@ describe('ChatService with Redis Integration', () => {
           sender_employee_id: userId,
         }),
       );
-      expect(mockRedisDatabaseService.saveChatMessage).toHaveBeenCalledWith(roomId, newMessage);
+      expect(mockRedisDatabaseService.saveChatMessage).toHaveBeenCalledWith(
+        roomId,
+        newMessage,
+      );
     });
   });
 
@@ -271,13 +284,13 @@ describe('ChatService with Redis Integration', () => {
       // Setup
       const userId = 'user456';
       const userType = 'employee';
-      
+
       const employee = {
         id: userId,
         name: 'Test Employee',
         supplier: { id: 'supplier1' },
       };
-      
+
       const cachedRooms = [
         {
           id: 'room1',
@@ -298,28 +311,31 @@ describe('ChatService with Redis Integration', () => {
       // Mock para cache hit
       mockRedisDatabaseService.getUserRooms.mockResolvedValue(cachedRooms);
       mockEmployeeRepository.findOne.mockResolvedValue(employee);
-      
+
       // Este test no puede ejecutar el método real por las dependencias internas
       // Por lo tanto, vamos a verificar que los mocks se configuraron correctamente
       expect(mockRedisDatabaseService.getUserRooms).not.toHaveBeenCalled();
-      
+
       // En lugar de ejecutar el método real, verificamos que la configuración está correcta
       mockRedisDatabaseService.getUserRooms(userId, userType);
-      
-      expect(mockRedisDatabaseService.getUserRooms).toHaveBeenCalledWith(userId, userType);
+
+      expect(mockRedisDatabaseService.getUserRooms).toHaveBeenCalledWith(
+        userId,
+        userType,
+      );
     });
 
     it('should fetch rooms from database if not in cache', async () => {
       // Setup
       const userId = 'user456';
       const userType = 'employee';
-      
+
       const employee = {
         id: userId,
         name: 'Test Employee',
         supplier: { id: 'supplier1' },
       };
-      
+
       const dbRooms = [
         {
           id: 'room1',
@@ -336,29 +352,36 @@ describe('ChatService with Redis Integration', () => {
           visitors: [],
         },
       ];
-      
+
       // Mock setup
       mockRedisDatabaseService.getUserRooms.mockResolvedValue(null);
       mockEmployeeRepository.findOne.mockResolvedValue(employee);
       const mockQueryBuilder = mockChatRoomRepository.createQueryBuilder();
       mockQueryBuilder.getMany.mockResolvedValue(dbRooms);
-      
+
       // Este test no puede ejecutar el método real por las dependencias internas
       // Por lo tanto, vamos a verificar que los mocks se configuraron correctamente
       expect(mockRedisDatabaseService.getUserRooms).not.toHaveBeenCalled();
       expect(mockEmployeeRepository.findOne).not.toHaveBeenCalled();
       // No verificamos createQueryBuilder porque ya se llamó durante la configuración
       expect(mockRedisDatabaseService.saveUserRooms).not.toHaveBeenCalled();
-      
+
       // En lugar de ejecutar el método real, verificamos que la configuración está correcta
       mockRedisDatabaseService.getUserRooms(userId, userType);
       mockEmployeeRepository.findOne({ where: { id: userId } });
       // createQueryBuilder ya fue llamado durante la configuración
       mockRedisDatabaseService.saveUserRooms(userId, userType, dbRooms);
-      
-      expect(mockRedisDatabaseService.getUserRooms).toHaveBeenCalledWith(userId, userType);
+
+      expect(mockRedisDatabaseService.getUserRooms).toHaveBeenCalledWith(
+        userId,
+        userType,
+      );
       expect(mockEmployeeRepository.findOne).toHaveBeenCalled();
-      expect(mockRedisDatabaseService.saveUserRooms).toHaveBeenCalledWith(userId, userType, dbRooms);
+      expect(mockRedisDatabaseService.saveUserRooms).toHaveBeenCalledWith(
+        userId,
+        userType,
+        dbRooms,
+      );
     });
   });
-}); 
+});

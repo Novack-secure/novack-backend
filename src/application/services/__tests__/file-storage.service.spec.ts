@@ -23,7 +23,7 @@ jest.mock('@aws-sdk/client-s3', () => {
   return {
     S3Client: MockS3Client,
     PutObjectCommand,
-    ListBucketsCommand
+    ListBucketsCommand,
   };
 });
 
@@ -72,7 +72,7 @@ describe('FileStorageService', () => {
     }).compile();
 
     service = module.get<FileStorageService>(FileStorageService);
-    
+
     // Acceder al cliente S3 interno y configurar su mock
     mockS3Client = (service as any).s3Client;
     mockS3Client.send.mockResolvedValue({});
@@ -171,7 +171,7 @@ describe('FileStorageService', () => {
       // Configurar que S3 está disponible
       (service as any).s3Available = true;
       mockS3Client.send.mockResolvedValue({});
-      
+
       const firstUpload = await service.uploadFile(
         mockBucketName,
         mockFile.buffer,
@@ -191,4 +191,4 @@ describe('FileStorageService', () => {
       expect(firstUpload).not.toEqual(secondUpload);
     });
   });
-}); 
+});

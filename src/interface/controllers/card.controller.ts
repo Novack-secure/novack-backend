@@ -137,7 +137,7 @@ export class CardController {
   findNearbyCards(
     @Query('lat') latitude: number,
     @Query('lng') longitude: number,
-    @Query('radius') radius = 100
+    @Query('radius') radius = 100,
   ) {
     return this.cardService.getNearbyCards(+latitude, +longitude, +radius);
   }

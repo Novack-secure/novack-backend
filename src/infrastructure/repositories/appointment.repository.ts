@@ -36,11 +36,11 @@ export class AppointmentRepository implements IAppointmentRepository {
   }
 
   async findBySupplierId(supplierId: string): Promise<Appointment[]> {
-     return this.ormRepository.find({
-       where: { supplier: { id: supplierId } }, // Querying by related entity ID
-       relations: ['visitor', 'supplier'], // Load relevant relations
-       order: { scheduled_time: 'ASC' }, // Example ordering
-     });
+    return this.ormRepository.find({
+      where: { supplier: { id: supplierId } }, // Querying by related entity ID
+      relations: ['visitor', 'supplier'], // Load relevant relations
+      order: { scheduled_time: 'ASC' }, // Example ordering
+    });
   }
 
   async remove(appointment: Appointment): Promise<void> {

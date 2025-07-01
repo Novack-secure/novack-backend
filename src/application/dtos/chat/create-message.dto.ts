@@ -8,12 +8,12 @@ export class CreateMessageDto {
   @IsNotEmpty()
   @IsUUID()
   roomId: string;
-  
+
   @IsOptional()
   @IsUUID()
   senderId?: string;
-  
+
   @IsOptional()
   @IsString()
   senderType?: 'employee' | 'visitor';
-} 
+}

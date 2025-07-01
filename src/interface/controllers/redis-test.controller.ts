@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { RedisDatabaseService } from '../../infrastructure/database/redis/redis.database.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { Public } from '../../application/decorators/public.decorator';
@@ -17,16 +25,16 @@ export class RedisTestController {
       properties: {
         key: { type: 'string', example: 'test:key' },
         value: { type: 'object', example: { name: 'Test Data', value: 123 } },
-        ttl: { type: 'number', example: 3600 }
+        ttl: { type: 'number', example: 3600 },
       },
-      required: ['key', 'value']
-    }
+      required: ['key', 'value'],
+    },
   })
   @ApiResponse({ status: 201, description: 'Dato guardado correctamente' })
   async saveData(
     @Body('key') key: string,
     @Body('value') value: any,
-    @Body('ttl') ttl?: number
+    @Body('ttl') ttl?: number,
   ) {
     await this.redisService.set(key, value, ttl);
     return { success: true, message: 'Dato guardado correctamente', key };
@@ -59,25 +67,32 @@ export class RedisTestController {
           type: 'object',
           properties: {
             latitude: { type: 'number', example: 40.7128 },
-            longitude: { type: 'number', example: -74.0060 }
-          }
-        }
+            longitude: { type: 'number', example: -74.006 },
+          },
+        },
       },
-      required: ['cardId', 'location']
-    }
+      required: ['cardId', 'location'],
+    },
   })
   @ApiResponse({ status: 201, description: 'Ubicación guardada correctamente' })
   async saveLocation(
     @Body('cardId') cardId: string,
-    @Body('location') location: { latitude: number; longitude: number }
+    @Body('location') location: { latitude: number; longitude: number },
   ) {
     await this.redisService.saveCardLocation(cardId, location);
-    return { success: true, message: 'Ubicación guardada correctamente', cardId };
+    return {
+      success: true,
+      message: 'Ubicación guardada correctamente',
+      cardId,
+    };
   }
 
   @Get('location/:cardId')
   @ApiOperation({ summary: 'Obtener la ubicación de una tarjeta' })
-  @ApiResponse({ status: 200, description: 'Ubicación recuperada correctamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Ubicación recuperada correctamente',
+  })
   async getLocation(@Param('cardId') cardId: string) {
     const location = await this.redisService.getCardLocation(cardId);
     return { success: !!location, location };
@@ -85,25 +100,34 @@ export class RedisTestController {
 
   @Get('nearby')
   @ApiOperation({ summary: 'Obtener tarjetas cercanas a una ubicación' })
-  @ApiResponse({ status: 200, description: 'Tarjetas cercanas recuperadas correctamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tarjetas cercanas recuperadas correctamente',
+  })
   async getNearbyCards(
     @Query('latitude') latitude: number,
     @Query('longitude') longitude: number,
-    @Query('radius') radius: number = 100
+    @Query('radius') radius: number = 100,
   ) {
     try {
-      console.log(`Buscando tarjetas cercanas en: lat=${latitude}, lon=${longitude}, radius=${radius}`);
-      const cards = await this.redisService.getNearbyCards(parseFloat(String(latitude)), parseFloat(String(longitude)), radius);
+      console.log(
+        `Buscando tarjetas cercanas en: lat=${latitude}, lon=${longitude}, radius=${radius}`,
+      );
+      const cards = await this.redisService.getNearbyCards(
+        parseFloat(String(latitude)),
+        parseFloat(String(longitude)),
+        radius,
+      );
       return { success: true, count: cards?.length || 0, cards };
     } catch (error) {
       console.error('Error al buscar tarjetas cercanas:', error);
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: {
           message: error.message || 'Error desconocido',
           name: error.name,
-          stack: error.stack?.split('\n') || []
-        }
+          stack: error.stack?.split('\n') || [],
+        },
       };
     }
   }
@@ -115,21 +139,25 @@ export class RedisTestController {
       type: 'object',
       properties: {
         id: { type: 'string', example: 'msg123' },
-        content: { type: 'string', example: 'Hola, este es un mensaje de prueba' },
+        content: {
+          type: 'string',
+          example: 'Hola, este es un mensaje de prueba',
+        },
         sender: { type: 'string', example: 'user1' },
-        timestamp: { type: 'string', example: '2025-05-11T22:00:00Z' }
+        timestamp: { type: 'string', example: '2025-05-11T22:00:00Z' },
       },
-      required: ['id', 'content', 'sender']
-    }
+      required: ['id', 'content', 'sender'],
+    },
   })
   @ApiResponse({ status: 201, description: 'Mensaje guardado correctamente' })
-  async saveChatMessage(
-    @Param('roomId') roomId: string,
-    @Body() message: any
-  ) {
+  async saveChatMessage(@Param('roomId') roomId: string, @Body() message: any) {
     try {
       await this.redisService.saveChatMessage(roomId, message);
-      return { success: true, message: 'Mensaje guardado correctamente', roomId };
+      return {
+        success: true,
+        message: 'Mensaje guardado correctamente',
+        roomId,
+      };
     } catch (error) {
       console.error('Error al guardar mensaje:', error);
       return { success: false, error: error.message };
@@ -138,10 +166,13 @@ export class RedisTestController {
 
   @Get('chat/:roomId/messages')
   @ApiOperation({ summary: 'Obtener mensajes de un chat' })
-  @ApiResponse({ status: 200, description: 'Mensajes recuperados correctamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Mensajes recuperados correctamente',
+  })
   async getChatMessages(
     @Param('roomId') roomId: string,
-    @Query('limit') limit: number = 50
+    @Query('limit') limit: number = 50,
   ) {
     try {
       const messages = await this.redisService.getChatMessages(roomId, limit);
@@ -160,18 +191,24 @@ export class RedisTestController {
       properties: {
         id: { type: 'string', example: 'room123' },
         name: { type: 'string', example: 'Sala de Pruebas' },
-        participants: { type: 'array', items: { type: 'string' }, example: ['user1', 'user2'] }
+        participants: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['user1', 'user2'],
+        },
       },
-      required: ['id', 'name']
-    }
+      required: ['id', 'name'],
+    },
   })
   @ApiResponse({ status: 201, description: 'Sala guardada correctamente' })
-  async saveChatRoom(
-    @Body() room: any
-  ) {
+  async saveChatRoom(@Body() room: any) {
     try {
       await this.redisService.saveChatRoom(room);
-      return { success: true, message: 'Sala guardada correctamente', roomId: room.id };
+      return {
+        success: true,
+        message: 'Sala guardada correctamente',
+        roomId: room.id,
+      };
     } catch (error) {
       console.error('Error al guardar sala:', error);
       return { success: false, error: error.message };
@@ -181,9 +218,7 @@ export class RedisTestController {
   @Get('chat/room/:roomId')
   @ApiOperation({ summary: 'Obtener información de una sala de chat' })
   @ApiResponse({ status: 200, description: 'Sala recuperada correctamente' })
-  async getChatRoom(
-    @Param('roomId') roomId: string
-  ) {
+  async getChatRoom(@Param('roomId') roomId: string) {
     try {
       const room = await this.redisService.getChatRoom(roomId);
       return { success: !!room, room };
@@ -201,29 +236,37 @@ export class RedisTestController {
       properties: {
         id: { type: 'string', example: 'user123' },
         userType: { type: 'string', example: 'visitor' },
-        rooms: { 
-          type: 'array', 
-          items: { 
-            type: 'object', 
+        rooms: {
+          type: 'array',
+          items: {
+            type: 'object',
             properties: {
               id: { type: 'string' },
-              name: { type: 'string' }
-            } 
-          }
-        }
+              name: { type: 'string' },
+            },
+          },
+        },
       },
-      required: ['id', 'userType', 'rooms']
-    }
+      required: ['id', 'userType', 'rooms'],
+    },
   })
-  @ApiResponse({ status: 201, description: 'Salas de usuario guardadas correctamente' })
+  @ApiResponse({
+    status: 201,
+    description: 'Salas de usuario guardadas correctamente',
+  })
   async saveUserRooms(
     @Body('id') userId: string,
     @Body('userType') userType: string,
-    @Body('rooms') rooms: any[]
+    @Body('rooms') rooms: any[],
   ) {
     try {
       await this.redisService.saveUserRooms(userId, userType, rooms);
-      return { success: true, message: 'Salas de usuario guardadas correctamente', userId, userType };
+      return {
+        success: true,
+        message: 'Salas de usuario guardadas correctamente',
+        userId,
+        userType,
+      };
     } catch (error) {
       console.error('Error al guardar salas de usuario:', error);
       return { success: false, error: error.message };
@@ -232,10 +275,13 @@ export class RedisTestController {
 
   @Get('user/:userType/:userId/rooms')
   @ApiOperation({ summary: 'Obtener las salas de chat de un usuario' })
-  @ApiResponse({ status: 200, description: 'Salas de usuario recuperadas correctamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Salas de usuario recuperadas correctamente',
+  })
   async getUserRooms(
     @Param('userId') userId: string,
-    @Param('userType') userType: string
+    @Param('userType') userType: string,
   ) {
     try {
       const rooms = await this.redisService.getUserRooms(userId, userType);
@@ -245,4 +291,4 @@ export class RedisTestController {
       return { success: false, error: error.message };
     }
   }
-} 
+}

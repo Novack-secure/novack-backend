@@ -107,6 +107,7 @@ services:
       - '4000:4000'
     environment:
       - NODE_ENV=development
+      - COOKIE_SECRET=supersecretcookiesecret
       - DB_TYPE=postgres
       - DB_HOST=postgres
       - DB_PORT=5430

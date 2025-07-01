@@ -27,9 +27,9 @@ export class CardLocation {
   @CreateDateColumn()
   created_at: Date;
 
-  @ManyToOne(() => Card, card => card.locations)
+  @ManyToOne(() => Card, (card) => card.locations)
   card: Card;
 
   @Column()
   card_id: string;
-} 
+}

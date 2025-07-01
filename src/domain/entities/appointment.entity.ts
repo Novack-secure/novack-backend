@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Visitor } from './visitor.entity';
 import { Supplier } from './supplier.entity';
 
@@ -28,14 +34,19 @@ export class Appointment {
   @Column({ default: 'pendiente' }) // e.g., pendiente, en_progreso, completado, cancelado
   status: string;
 
-  @ManyToOne(() => Visitor, visitor => visitor.appointments, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Visitor, (visitor) => visitor.appointments, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'visitor_id' })
   visitor: Visitor;
 
   @Column()
   visitor_id: string;
 
-  @ManyToOne(() => Supplier, supplier => supplier.appointments, { onDelete: 'SET NULL', nullable: true })
+  @ManyToOne(() => Supplier, (supplier) => supplier.appointments, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
   @JoinColumn({ name: 'supplier_id' })
   supplier?: Supplier | null;
 
@@ -45,6 +56,10 @@ export class Appointment {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
   updated_at: Date;
 }

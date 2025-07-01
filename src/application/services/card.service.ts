@@ -37,9 +37,14 @@ export class CardService {
     });
   }
 
-  async recordLocation(card_id: string, latitude: number, longitude: number, accuracy?: number): Promise<CardLocation> {
+  async recordLocation(
+    card_id: string,
+    latitude: number,
+    longitude: number,
+    accuracy?: number,
+  ): Promise<CardLocation> {
     const card = await this.findOne(card_id); // findOne might throw, which is fine.
-    
+
     // Crear registro de ubicación
     const location = this.locationRepository.create({
       card,
@@ -54,10 +59,15 @@ export class CardService {
     card.longitude = longitude;
     card.accuracy = accuracy;
     await this.cardRepository.save(card);
-    
+
     const savedLocation = await this.locationRepository.save(location);
-    this.structuredLogger.debug('Card location recorded', undefined, { cardId: card_id, latitude, longitude, accuracy });
-    
+    this.structuredLogger.debug('Card location recorded', undefined, {
+      cardId: card_id,
+      latitude,
+      longitude,
+      accuracy,
+    });
+
     // Guardar en caché Redis
     try {
       await this.redisService.saveCardLocation(card_id, {
@@ -69,14 +79,22 @@ export class CardService {
         card_number: card.card_number,
       });
     } catch (error) {
-      this.structuredLogger.warn(`Error al guardar ubicación de tarjeta en caché: ${error.message}`, undefined, { cardId: card_id });
+      this.structuredLogger.warn(
+        `Error al guardar ubicación de tarjeta en caché: ${error.message}`,
+        undefined,
+        { cardId: card_id },
+      );
     }
 
     return savedLocation;
   }
 
   async assignToVisitor(card_id: string, visitor_id: string): Promise<Card> {
-    this.structuredLogger.log('Attempting to assign card to visitor', undefined, { cardId: card_id, visitorId: visitor_id });
+    this.structuredLogger.log(
+      'Attempting to assign card to visitor',
+      undefined,
+      { cardId: card_id, visitorId: visitor_id },
+    );
     const card = await this.findOne(card_id);
     const visitor = await this.visitorRepository.findOne({
       where: { id: visitor_id },
@@ -86,31 +104,51 @@ export class CardService {
     let reason = '';
     if (!visitor) {
       reason = 'El visitante no existe';
-      this.structuredLogger.warn(`Card assignment failed: ${reason}`, undefined, { cardId: card_id, visitorId: visitor_id, reason });
+      this.structuredLogger.warn(
+        `Card assignment failed: ${reason}`,
+        undefined,
+        { cardId: card_id, visitorId: visitor_id, reason },
+      );
       throw new BadRequestException(reason);
     }
 
     if (visitor.state === 'completado') {
       reason = 'El visitante ya completó su visita';
-      this.structuredLogger.warn(`Card assignment failed: ${reason}`, undefined, { cardId: card_id, visitorId: visitor_id, reason });
+      this.structuredLogger.warn(
+        `Card assignment failed: ${reason}`,
+        undefined,
+        { cardId: card_id, visitorId: visitor_id, reason },
+      );
       throw new BadRequestException(reason);
     }
 
     if (visitor.card) {
       reason = 'El visitante ya tiene una tarjeta asignada';
-      this.structuredLogger.warn(`Card assignment failed: ${reason}`, undefined, { cardId: card_id, visitorId: visitor_id, reason });
+      this.structuredLogger.warn(
+        `Card assignment failed: ${reason}`,
+        undefined,
+        { cardId: card_id, visitorId: visitor_id, reason },
+      );
       throw new BadRequestException(reason);
     }
 
     if (!card.is_active) {
       reason = 'La tarjeta no está activa';
-      this.structuredLogger.warn(`Card assignment failed: ${reason}`, undefined, { cardId: card_id, visitorId: visitor_id, reason });
+      this.structuredLogger.warn(
+        `Card assignment failed: ${reason}`,
+        undefined,
+        { cardId: card_id, visitorId: visitor_id, reason },
+      );
       throw new BadRequestException(reason);
     }
 
     if (card.visitor) {
       reason = 'La tarjeta ya está asignada a otro visitante';
-      this.structuredLogger.warn(`Card assignment failed: ${reason}`, undefined, { cardId: card_id, visitorId: visitor_id, reason });
+      this.structuredLogger.warn(
+        `Card assignment failed: ${reason}`,
+        undefined,
+        { cardId: card_id, visitorId: visitor_id, reason },
+      );
       throw new BadRequestException(reason);
     }
 
@@ -120,24 +158,37 @@ export class CardService {
 
     await this.visitorRepository.save(visitor);
     const savedCard = await this.cardRepository.save(card);
-    this.structuredLogger.log('Card assigned to visitor successfully', undefined, { cardId: savedCard.id, visitorId: visitor.id });
+    this.structuredLogger.log(
+      'Card assigned to visitor successfully',
+      undefined,
+      { cardId: savedCard.id, visitorId: visitor.id },
+    );
     return savedCard;
   }
 
   async unassignFromVisitor(card_id: string): Promise<Card> {
-    this.structuredLogger.log('Attempting to unassign card from visitor', undefined, { cardId: card_id });
+    this.structuredLogger.log(
+      'Attempting to unassign card from visitor',
+      undefined,
+      { cardId: card_id },
+    );
     const card = await this.findOne(card_id);
 
     if (!card.visitor) {
       // This could be a normal scenario or an error depending on context. Logging as WARN if unexpected.
       // For now, let's assume it's a validation failure.
       const reason = 'La tarjeta no está asignada a ningún visitante';
-      this.structuredLogger.warn(`Card unassignment failed: ${reason}`, undefined, { cardId: card_id, reason});
+      this.structuredLogger.warn(
+        `Card unassignment failed: ${reason}`,
+        undefined,
+        { cardId: card_id, reason },
+      );
       throw new BadRequestException(reason);
     }
 
     const visitorIdBeforeUnassign = card.visitor.id; // Capture before setting to null
-    const visitor = await this.visitorRepository.findOne({ // Fetch visitor to update state
+    const visitor = await this.visitorRepository.findOne({
+      // Fetch visitor to update state
       where: { id: visitorIdBeforeUnassign },
     });
 
@@ -149,7 +200,11 @@ export class CardService {
     card.visitor = null;
     card.issued_at = null;
     const unassignedCard = await this.cardRepository.save(card);
-    this.structuredLogger.log('Card unassigned from visitor successfully', undefined, { cardId: unassignedCard.id, visitorId: visitorIdBeforeUnassign });
+    this.structuredLogger.log(
+      'Card unassigned from visitor successfully',
+      undefined,
+      { cardId: unassignedCard.id, visitorId: visitorIdBeforeUnassign },
+    );
     return unassignedCard;
   }
 
@@ -170,10 +225,17 @@ export class CardService {
       throw new BadRequestException('El proveedor no existe');
     }
 
-    if (!supplier.subscription || !supplier.subscription.has_card_subscription) {
-      this.structuredLogger.warn('Card creation failed: Supplier not subscribed for cards', undefined, {
-        supplierId: createCardDto.supplier_id,
-      });
+    if (
+      !supplier.subscription ||
+      !supplier.subscription.has_card_subscription
+    ) {
+      this.structuredLogger.warn(
+        'Card creation failed: Supplier not subscribed for cards',
+        undefined,
+        {
+          supplierId: createCardDto.supplier_id,
+        },
+      );
       throw new BadRequestException(
         'El proveedor no tiene suscripción de tarjetas',
       );
@@ -185,10 +247,14 @@ export class CardService {
     });
 
     if (currentCardCount >= supplier.subscription.max_card_count) {
-      this.structuredLogger.warn('Card creation failed: Supplier card limit reached', undefined, {
-        supplierId: createCardDto.supplier_id,
-        limit: supplier.subscription.max_card_count,
-      });
+      this.structuredLogger.warn(
+        'Card creation failed: Supplier card limit reached',
+        undefined,
+        {
+          supplierId: createCardDto.supplier_id,
+          limit: supplier.subscription.max_card_count,
+        },
+      );
       throw new BadRequestException(
         `El proveedor ha alcanzado su límite de tarjetas (${supplier.subscription.max_card_count})`,
       );
@@ -230,9 +296,9 @@ export class CardService {
 
   async findLocationHistory(card_id: string): Promise<CardLocation[]> {
     const card = await this.findOne(card_id); // Ensures card exists
-    
+
     // Obtener el historial de ubicaciones de la base de datos
-    return this.locationRepository.find({ 
+    return this.locationRepository.find({
       where: { card: { id: card_id } }, // Ensure TypeORM handles this relation correctly
       order: { timestamp: 'DESC' },
     });
@@ -246,15 +312,19 @@ export class CardService {
         return cachedLocation;
       }
     } catch (error) {
-      this.structuredLogger.warn(`Error al obtener ubicación de tarjeta de caché: ${error.message}`, undefined, { cardId: card_id });
+      this.structuredLogger.warn(
+        `Error al obtener ubicación de tarjeta de caché: ${error.message}`,
+        undefined,
+        { cardId: card_id },
+      );
     }
-    
+
     // Si no está en caché, obtener de base de datos
-    const lastLocationFromDB = await this.locationRepository.findOne({ 
+    const lastLocationFromDB = await this.locationRepository.findOne({
       where: { card: { id: card_id } }, // Ensure TypeORM handles this relation correctly
       order: { timestamp: 'DESC' },
     });
-    
+
     if (lastLocationFromDB) {
       // Guardar en caché para futuros accesos
       try {
@@ -268,44 +338,60 @@ export class CardService {
           card_number: card.card_number, // Assuming card_number is needed in cache
         });
       } catch (error) {
-        this.structuredLogger.warn(`Error al guardar ubicación de tarjeta en caché: ${error.message}`, undefined, { cardId: card_id });
+        this.structuredLogger.warn(
+          `Error al guardar ubicación de tarjeta en caché: ${error.message}`,
+          undefined,
+          { cardId: card_id },
+        );
       }
-      
+
       return lastLocationFromDB;
     }
-    
+
     return null;
   }
-  
-  async getNearbyCards(latitude: number, longitude: number, radius = 100): Promise<any[]> {
+
+  async getNearbyCards(
+    latitude: number,
+    longitude: number,
+    radius = 100,
+  ): Promise<any[]> {
     // Utilizar la función de Redis para obtener tarjetas cercanas
     try {
-      const nearbyCards = await this.redisService.getNearbyCards(latitude, longitude, radius);
+      const nearbyCards = await this.redisService.getNearbyCards(
+        latitude,
+        longitude,
+        radius,
+      );
       if (nearbyCards && nearbyCards.length > 0) {
         return nearbyCards;
       }
     } catch (error) {
-      this.structuredLogger.warn(`Error al obtener tarjetas cercanas de caché: ${error.message}`, undefined, { latitude, longitude, radius });
+      this.structuredLogger.warn(
+        `Error al obtener tarjetas cercanas de caché: ${error.message}`,
+        undefined,
+        { latitude, longitude, radius },
+      );
     }
-    
+
     // Fallback a la base de datos (búsqueda aproximada)
     // Nota: esto no es una verdadera búsqueda geoespacial, solo una aproximación
     const latDelta = radius / 111000; // Aproximado: 1 grado ~ 111km
     const lngDelta = radius / (111000 * Math.cos(latitude * (Math.PI / 180)));
-    
+
     const minLat = latitude - latDelta;
     const maxLat = latitude + latDelta;
     const minLng = longitude - lngDelta;
     const maxLng = longitude + lngDelta;
-    
+
     const cards = await this.cardRepository.find({
       where: {
         latitude: Between(minLat, maxLat), // Ensure latitude/longitude are numeric types in DB
         longitude: Between(minLng, maxLng),
       },
     });
-    
-    return cards.map(card => ({
+
+    return cards.map((card) => ({
       id: card.id,
       card_number: card.card_number,
       latitude: card.latitude, // Ensure these are directly on the card entity
@@ -313,30 +399,38 @@ export class CardService {
       accuracy: card.accuracy, // Ensure these are directly on the card entity
       // Cálculo aproximado de la distancia
       distance_meters: this.calculateDistance(
-        latitude, longitude,
+        latitude,
+        longitude,
         parseFloat(String(card.latitude)), // Ensure conversion is safe
         parseFloat(String(card.longitude)), // Ensure conversion is safe
       ),
     }));
   }
-  
-  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371000; // Radio de la Tierra en metros
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  private calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371000; // Radio de la Tierra en metros
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return Math.round(R * c); // Distancia en metros
   }
 
   async update(id: string, updateCardDto: UpdateCardDto) {
-    this.structuredLogger.log('Attempting to update card', undefined, { cardId: id });
+    this.structuredLogger.log('Attempting to update card', undefined, {
+      cardId: id,
+    });
     const card = await this.findOne(id); // findOne will throw if not found
 
     if (updateCardDto.supplier_id) {
@@ -349,7 +443,10 @@ export class CardService {
         throw new BadRequestException('El proveedor no existe');
       }
 
-      if (!supplier.subscription || !supplier.subscription.has_card_subscription) {
+      if (
+        !supplier.subscription ||
+        !supplier.subscription.has_card_subscription
+      ) {
         throw new BadRequestException(
           'El proveedor no tiene suscripción de tarjetas',
         );
@@ -359,19 +456,26 @@ export class CardService {
     }
 
     if (updateCardDto.card_number) card.card_number = updateCardDto.card_number;
-    if (updateCardDto.is_active !== undefined) card.is_active = updateCardDto.is_active;
+    if (updateCardDto.is_active !== undefined)
+      card.is_active = updateCardDto.is_active;
     if (updateCardDto.expires_at) card.expires_at = updateCardDto.expires_at;
 
     const updatedCard = await this.cardRepository.save(card);
-    this.structuredLogger.log('Card updated successfully', undefined, { cardId: updatedCard.id });
+    this.structuredLogger.log('Card updated successfully', undefined, {
+      cardId: updatedCard.id,
+    });
     return updatedCard;
   }
 
   async remove(id: string) {
-    this.structuredLogger.log('Attempting to delete card', undefined, { cardId: id });
+    this.structuredLogger.log('Attempting to delete card', undefined, {
+      cardId: id,
+    });
     const card = await this.findOne(id); // findOne will throw if not found
     await this.cardRepository.remove(card);
-    this.structuredLogger.log('Card deleted successfully', undefined, { cardId: id });
+    this.structuredLogger.log('Card deleted successfully', undefined, {
+      cardId: id,
+    });
     // Original returns result of remove, which is usually void or the entity.
   }
 }

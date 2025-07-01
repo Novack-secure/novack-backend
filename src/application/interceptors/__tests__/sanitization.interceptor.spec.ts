@@ -10,19 +10,19 @@ describe('SanitizationInterceptor', () => {
 
   beforeEach(() => {
     interceptor = new SanitizationInterceptor();
-    
+
     mockRequest = {
-      body: {}
+      body: {},
     };
-    
+
     mockExecutionContext = {
       switchToHttp: jest.fn().mockReturnValue({
-        getRequest: jest.fn().mockReturnValue(mockRequest)
+        getRequest: jest.fn().mockReturnValue(mockRequest),
       }),
     } as unknown as ExecutionContext;
-    
+
     mockCallHandler = {
-      handle: jest.fn().mockReturnValue(of({}))
+      handle: jest.fn().mockReturnValue(of({})),
     } as unknown as CallHandler;
   });
 
@@ -36,9 +36,9 @@ describe('SanitizationInterceptor', () => {
       name: 'Test <script>alert("XSS")</script>',
       description: 'Description with <img src="x" onerror="alert(\'XSS\')" />',
       nested: {
-        field: '<div onclick="evil()">Click me</div>'
+        field: '<div onclick="evil()">Click me</div>',
       },
-      array: ['Text', '<script>bad()</script>']
+      array: ['Text', '<script>bad()</script>'],
     };
 
     // Ejecutar
@@ -49,9 +49,9 @@ describe('SanitizationInterceptor', () => {
       name: 'Test ',
       description: 'Description with ',
       nested: {
-        field: 'Click me'
+        field: 'Click me',
       },
-      array: ['Text', '']
+      array: ['Text', ''],
     });
     expect(mockCallHandler.handle).toHaveBeenCalled();
   });
@@ -61,7 +61,7 @@ describe('SanitizationInterceptor', () => {
     mockRequest.body = {
       empty: null,
       notDefined: undefined,
-      text: 'Normal text'
+      text: 'Normal text',
     };
 
     // Ejecutar
@@ -71,7 +71,7 @@ describe('SanitizationInterceptor', () => {
     expect(mockRequest.body).toEqual({
       empty: null,
       notDefined: undefined,
-      text: 'Normal text'
+      text: 'Normal text',
     });
     expect(mockCallHandler.handle).toHaveBeenCalled();
   });
@@ -80,10 +80,10 @@ describe('SanitizationInterceptor', () => {
     // Preparar
     const number = 42;
     const boolean = true;
-    
+
     mockRequest.body = {
       number: number,
-      boolean: boolean
+      boolean: boolean,
     };
 
     // Ejecutar
@@ -94,4 +94,4 @@ describe('SanitizationInterceptor', () => {
     expect(mockRequest.body.boolean).toBe(boolean);
     expect(mockCallHandler.handle).toHaveBeenCalled();
   });
-}); 
+});

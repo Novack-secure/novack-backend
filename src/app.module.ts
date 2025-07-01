@@ -33,6 +33,8 @@ import { LoggingModule } from './infrastructure/logging/logging.module';
 import { LogstashModule } from './infrastructure/services/logstash.module';
 import { HealthModule } from './application/modules/health.module';
 import { TokenModule } from './application/modules/token.module';
+import configuration from './config/configuration';
+import { validate } from './config/validation';
 
 /**
  * Root module of the application that configures and organizes all feature modules.
@@ -42,9 +44,9 @@ import { TokenModule } from './application/modules/token.module';
   imports: [
     // Global configuration module for environment variables
     ConfigModule.forRoot({
-      // envFilePath: ENV_FILE_PATH,
-      envFilePath: '.env',
+      load: [configuration],
       isGlobal: true,
+      validate,
     }),
     // Rate limiting configuration to prevent abuse
     ThrottlerModule.forRoot([
@@ -71,16 +73,19 @@ import { TokenModule } from './application/modules/token.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('DB_HOST', 'localhost'),
-        port: configService.get('DB_PORT', 5432),
-        username: configService.get('DB_USERNAME', 'postgres'),
-        password: configService.get('DB_PASSWORD', 'postgres'),
-        database: configService.get('DB_NAME', 'postgres'),
-        autoLoadEntities: true,
-        synchronize: configService.get('NODE_ENV') !== 'production',
-      }),
+      useFactory: (configService: ConfigService) => {
+        const dbConfig = configService.get('config.database');
+        return {
+          type: 'postgres',
+          host: dbConfig.host,
+          port: dbConfig.port,
+          username: dbConfig.username,
+          password: dbConfig.password,
+          database: dbConfig.name,
+          autoLoadEntities: true,
+          synchronize: configService.get('config.nodeEnv') !== 'production',
+        };
+      },
     }),
     RedisDatabaseModule,
 
@@ -123,10 +128,13 @@ import { TokenModule } from './application/modules/token.module';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'supersecret'),
-        signOptions: { expiresIn: '1d' },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const jwtConfig = configService.get('config.jwt');
+        return {
+          secret: jwtConfig.secret,
+          signOptions: { expiresIn: jwtConfig.expiresIn },
+        };
+      },
     }),
     LoggingModule,
     LogstashModule, // Nuevo módulo para gestionar conexión con Logstash

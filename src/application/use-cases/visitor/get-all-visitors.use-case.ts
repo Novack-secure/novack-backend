@@ -21,7 +21,11 @@ export class GetAllVisitorsUseCase {
     // as part of the summary list of visitors.
     const visitors = await this.visitorRepository.findAll();
 
-    this.logger.log(`Successfully fetched ${visitors.length} visitors.`, undefined, { count: visitors.length });
+    this.logger.log(
+      `Successfully fetched ${visitors.length} visitors.`,
+      undefined,
+      { count: visitors.length },
+    );
     return visitors;
   }
 }

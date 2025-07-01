@@ -8,4 +8,4 @@ import { ConfigModule } from '@nestjs/config';
   providers: [EncryptionService],
   exports: [EncryptionService],
 })
-export class EncryptionModule {} 
+export class EncryptionModule {}

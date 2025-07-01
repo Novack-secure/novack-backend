@@ -43,4 +43,4 @@ export class ChatMessage {
 
   @CreateDateColumn()
   created_at: Date;
-} 
+}

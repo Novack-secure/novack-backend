@@ -2,7 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CardService } from '../card.service';
 import { RedisDatabaseService } from '../../../infrastructure/database/redis/redis.database.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Card, CardLocation, Supplier, Visitor } from '../../../domain/entities';
+import {
+  Card,
+  CardLocation,
+  Supplier,
+  Visitor,
+} from '../../../domain/entities';
 // Importar StructuredLoggerService directamente en lugar de LoggingModule
 import { StructuredLoggerService } from 'src/infrastructure/logging/structured-logger.service';
 import { ConfigService } from '@nestjs/config';
@@ -68,7 +73,7 @@ describe('CardService with Redis Integration', () => {
     created_at: new Date(),
     updated_at: new Date(),
   };
-  
+
   // Mock repositories
   const mockCardRepository = {
     findOne: jest.fn(),
@@ -76,7 +81,7 @@ describe('CardService with Redis Integration', () => {
     save: jest.fn(),
     create: jest.fn(),
   };
-  
+
   const mockLocationRepository = {
     findOne: jest.fn(),
     find: jest.fn(),
@@ -119,13 +124,13 @@ describe('CardService with Redis Integration', () => {
         {
           provide: StructuredLoggerService,
           useValue: mockLoggerService,
-        }
+        },
       ],
     }).compile();
 
     service = module.get<CardService>(CardService);
     redisService = module.get<RedisDatabaseService>(RedisDatabaseService);
-    
+
     // Configurar spies para los métodos de Redis
     jest.spyOn(redisService, 'saveCardLocation').mockResolvedValue(undefined);
     jest.spyOn(redisService, 'getCardLocation').mockResolvedValue(null);
@@ -169,7 +174,12 @@ describe('CardService with Redis Integration', () => {
       // mockRedisDatabaseService.saveCardLocation.mockResolvedValue(undefined); // No longer using mockRedisDatabaseService
 
       // Ejecutar
-      const result = await service.recordLocation(cardId, latitude, longitude, accuracy);
+      const result = await service.recordLocation(
+        cardId,
+        latitude,
+        longitude,
+        accuracy,
+      );
 
       // Verificar
       expect(mockCardRepository.findOne).toHaveBeenCalledWith({
@@ -190,7 +200,8 @@ describe('CardService with Redis Integration', () => {
         accuracy,
       });
       expect(mockLocationRepository.save).toHaveBeenCalledWith(mockLocation);
-      expect(redisService.saveCardLocation).toHaveBeenCalledWith( // Check the spy on the real service
+      expect(redisService.saveCardLocation).toHaveBeenCalledWith(
+        // Check the spy on the real service
         cardId,
         expect.objectContaining({
           id: mockLocation.id,
@@ -199,7 +210,7 @@ describe('CardService with Redis Integration', () => {
           accuracy,
           timestamp: expect.any(Date),
           card_number: card.card_number,
-        })
+        }),
       );
       expect(result).toEqual(mockLocation);
     });
@@ -220,8 +231,9 @@ describe('CardService with Redis Integration', () => {
 
       // redisDatabaseService.getCardLocation is spied on
       // mockRedisDatabaseService.getCardLocation.mockResolvedValue(cachedLocation); // No longer using mockRedisDatabaseService
-      (redisService.getCardLocation as jest.Mock).mockResolvedValue(cachedLocation);
-
+      (redisService.getCardLocation as jest.Mock).mockResolvedValue(
+        cachedLocation,
+      );
 
       // Ejecutar
       const result = await service.getLastLocation(cardId);
@@ -258,13 +270,14 @@ describe('CardService with Redis Integration', () => {
       // Verificar
       expect(redisService.getCardLocation).toHaveBeenCalledWith(cardId); // Check the spy
       expect(mockLocationRepository.findOne).toHaveBeenCalled();
-      expect(redisService.saveCardLocation).toHaveBeenCalledWith( // Check the spy
+      expect(redisService.saveCardLocation).toHaveBeenCalledWith(
+        // Check the spy
         cardId,
         expect.objectContaining({
           id: dbLocation.id,
           latitude: dbLocation.latitude,
           longitude: dbLocation.longitude,
-        })
+        }),
       );
       expect(result).toEqual(dbLocation);
     });
@@ -287,7 +300,7 @@ describe('CardService with Redis Integration', () => {
         {
           id: 'card456',
           card_number: 'CARD-456',
-          latitude: 40.710,
+          latitude: 40.71,
           longitude: -74.009,
           distance_meters: 80,
         },
@@ -297,15 +310,15 @@ describe('CardService with Redis Integration', () => {
       // mockRedisDatabaseService.getNearbyCards.mockResolvedValue(nearbyCards); // No longer using mockRedisDatabaseService
       (redisService.getNearbyCards as jest.Mock).mockResolvedValue(nearbyCards);
 
-
       // Ejecutar
       const result = await service.getNearbyCards(latitude, longitude, radius);
 
       // Verificar
-      expect(redisService.getNearbyCards).toHaveBeenCalledWith( // Check the spy
+      expect(redisService.getNearbyCards).toHaveBeenCalledWith(
+        // Check the spy
         latitude,
         longitude,
-        radius
+        radius,
       );
       expect(mockCardRepository.find).not.toHaveBeenCalled(); // No debería buscar en DB
       expect(result).toEqual(nearbyCards);
@@ -326,27 +339,30 @@ describe('CardService with Redis Integration', () => {
         {
           id: 'card456',
           card_number: 'CARD-456',
-          latitude: 40.710,
+          latitude: 40.71,
           longitude: -74.009,
         },
       ];
 
       // mockRedisDatabaseService.getNearbyCards.mockRejectedValue(new Error('Redis error')); // No longer using mockRedisDatabaseService
-      (redisService.getNearbyCards as jest.Mock).mockRejectedValue(new Error('Redis error'));
+      (redisService.getNearbyCards as jest.Mock).mockRejectedValue(
+        new Error('Redis error'),
+      );
       mockCardRepository.find.mockResolvedValue(dbCards);
 
       // Ejecutar
       const result = await service.getNearbyCards(latitude, longitude, radius);
 
       // Verificar
-      expect(redisService.getNearbyCards).toHaveBeenCalledWith( // Check the spy
+      expect(redisService.getNearbyCards).toHaveBeenCalledWith(
+        // Check the spy
         latitude,
         longitude,
-        radius
+        radius,
       );
       expect(mockCardRepository.find).toHaveBeenCalled();
       expect(result).toHaveLength(2);
       expect(result[0]).toHaveProperty('distance_meters'); // Debe calcular la distancia
     });
   });
-}); 
+});

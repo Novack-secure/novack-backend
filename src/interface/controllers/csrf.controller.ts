@@ -34,4 +34,4 @@ export class CsrfController {
 
     return { csrf_token: token };
   }
-} 
+}

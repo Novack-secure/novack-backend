@@ -1,13 +1,19 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateCardDto } from './create-card.dto';
-import { IsBoolean, IsDate, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsBoolean,
+  IsDate,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateCardDto extends PartialType(CreateCardDto) {
   @ApiProperty({
     description: 'Número único de la tarjeta',
     example: 'CARD-001',
-    required: false
+    required: false,
   })
   @IsString()
   @IsOptional()
@@ -16,7 +22,7 @@ export class UpdateCardDto extends PartialType(CreateCardDto) {
   @ApiProperty({
     description: 'ID del proveedor al que pertenece la tarjeta',
     example: '550e8400-e29b-41d4-a716-446655440000',
-    required: false
+    required: false,
   })
   @IsUUID()
   @IsOptional()
@@ -25,7 +31,7 @@ export class UpdateCardDto extends PartialType(CreateCardDto) {
   @ApiProperty({
     description: 'Indica si la tarjeta está activa',
     example: true,
-    required: false
+    required: false,
   })
   @IsBoolean()
   @IsOptional()
@@ -34,7 +40,7 @@ export class UpdateCardDto extends PartialType(CreateCardDto) {
   @ApiProperty({
     description: 'Fecha de expiración de la tarjeta',
     example: '2025-12-31T23:59:59Z',
-    required: false
+    required: false,
   })
   @IsDate()
   @IsOptional()

@@ -24,7 +24,14 @@ import {
   CreateEmployeeDto,
   UpdateEmployeeDto,
 } from '../../application/dtos/employee';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiConsumes } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import { FileStorageService } from '../../application/services/file-storage.service';
 import { ImageProcessingPipe } from '../../application/pipes/image-processing.pipe';
 import { Express } from 'express';
@@ -66,7 +73,7 @@ export class EmployeeController {
     - Valida que el email sea único
     - Hashea la contraseña automáticamente
     - Verifica si es el creador del proveedor
-    - Solo puede haber un creador por proveedor`
+    - Solo puede haber un creador por proveedor`,
   })
   @ApiBody({ type: CreateEmployeeDto })
   @ApiResponse({
@@ -80,10 +87,10 @@ export class EmployeeController {
         is_creator: true,
         supplier: {
           id: '987fcdeb-51a2-43f7-9abc-def012345678',
-          name: 'Empresa ABC'
-        }
-      }
-    }
+          name: 'Empresa ABC',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -91,7 +98,7 @@ export class EmployeeController {
     - Email ya registrado
     - Contraseña muy corta
     - Proveedor no existe
-    - Ya existe un creador para el proveedor`
+    - Ya existe un creador para el proveedor`,
   })
   create(@Body() createEmployeeDto: CreateEmployeeDto) {
     return this.createEmployeeUseCase.execute(createEmployeeDto);
@@ -104,7 +111,7 @@ export class EmployeeController {
     description: `Retorna la lista completa de empleados.
     - Incluye información del proveedor
     - No incluye contraseñas
-    - Muestra si es creador del proveedor`
+    - Muestra si es creador del proveedor`,
   })
   @ApiResponse({
     status: 200,
@@ -119,11 +126,11 @@ export class EmployeeController {
           is_creator: true,
           supplier: {
             id: '987fcdeb-51a2-43f7-9abc-def012345678',
-            name: 'Empresa ABC'
-          }
-        }
-      }
-    }
+            name: 'Empresa ABC',
+          },
+        },
+      },
+    },
   })
   findAll() {
     return this.getAllEmployeesUseCase.execute();
@@ -136,12 +143,12 @@ export class EmployeeController {
     description: `Busca y retorna un empleado específico por su ID.
     - Incluye información del proveedor
     - No incluye contraseña
-    - Muestra si es creador del proveedor`
+    - Muestra si es creador del proveedor`,
   })
   @ApiParam({
     name: 'id',
     description: 'ID UUID del empleado',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({
     status: 200,
@@ -154,13 +161,16 @@ export class EmployeeController {
         is_creator: true,
         supplier: {
           id: '987fcdeb-51a2-43f7-9abc-def012345678',
-          name: 'Empresa ABC'
-        }
-      }
-    }
+          name: 'Empresa ABC',
+        },
+      },
+    },
   })
   @ApiResponse({ status: 400, description: 'ID con formato inválido.' })
-  @ApiResponse({ status: 404, description: 'Empleado no encontrado en el sistema.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Empleado no encontrado en el sistema.',
+  })
   findOne(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return this.getEmployeeByIdUseCase.execute(id);
   }
@@ -173,12 +183,12 @@ export class EmployeeController {
     - Permite actualizar datos básicos
     - Permite cambiar la contraseña
     - Valida email único si se actualiza
-    - No permite modificar creador si ya existe uno`
+    - No permite modificar creador si ya existe uno`,
   })
   @ApiParam({
     name: 'id',
     description: 'ID UUID del empleado a actualizar',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiBody({ type: UpdateEmployeeDto })
   @ApiResponse({
@@ -192,10 +202,10 @@ export class EmployeeController {
         is_creator: true,
         supplier: {
           id: '987fcdeb-51a2-43f7-9abc-def012345678',
-          name: 'Empresa ABC'
-        }
-      }
-    }
+          name: 'Empresa ABC',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -203,9 +213,12 @@ export class EmployeeController {
     - Email ya registrado
     - Contraseña muy corta
     - Proveedor no existe
-    - Conflicto con creador existente`
+    - Conflicto con creador existente`,
   })
-  @ApiResponse({ status: 404, description: 'Empleado no encontrado en el sistema.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Empleado no encontrado en el sistema.',
+  })
   update(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateEmployeeDto: UpdateEmployeeDto,
@@ -220,21 +233,27 @@ export class EmployeeController {
     description: `Elimina un empleado del sistema.
     - No permite eliminar al creador del proveedor
     - La eliminación es permanente
-    - No afecta al proveedor asociado`
+    - No afecta al proveedor asociado`,
   })
   @ApiParam({
     name: 'id',
     description: 'ID UUID del empleado a eliminar',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  @ApiResponse({ status: 204, description: 'El empleado ha sido eliminado exitosamente.' })
+  @ApiResponse({
+    status: 204,
+    description: 'El empleado ha sido eliminado exitosamente.',
+  })
   @ApiResponse({
     status: 400,
     description: `Operación inválida. Posibles errores:
     - ID con formato inválido
-    - Intento de eliminar al creador`
+    - Intento de eliminar al creador`,
   })
-  @ApiResponse({ status: 404, description: 'Empleado no encontrado en el sistema.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Empleado no encontrado en el sistema.',
+  })
   remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     // DeleteEmployeeUseCase returns Promise<void>, adjust controller if needed
     // For HttpCode(HttpStatus.NO_CONTENT), returning nothing is fine.
@@ -257,7 +276,11 @@ export class EmployeeController {
     },
   })
   @ApiResponse({ status: 200, description: 'Imagen de perfil actualizada.' })
-  @ApiResponse({ status: 400, description: 'Archivo inválido, tipo no permitido o error de procesamiento.' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Archivo inválido, tipo no permitido o error de procesamiento.',
+  })
   @ApiResponse({ status: 404, description: 'Empleado no encontrado.' })
   async uploadProfileImage(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -268,9 +291,13 @@ export class EmployeeController {
       throw new BadRequestException('No se proporcionó ningún archivo.');
     }
 
-    const bucketName = this.configService.get<string>('AWS_S3_EMPLOYEE_BUCKET_NAME');
+    const bucketName = this.configService.get<string>(
+      'AWS_S3_EMPLOYEE_BUCKET_NAME',
+    );
     if (!bucketName) {
-      throw new Error('Nombre del bucket S3 para empleados no configurado (AWS_S3_EMPLOYEE_BUCKET_NAME).');
+      throw new Error(
+        'Nombre del bucket S3 para empleados no configurado (AWS_S3_EMPLOYEE_BUCKET_NAME).',
+      );
     }
 
     const destinationPath = `profile/`;
@@ -287,7 +314,9 @@ export class EmployeeController {
     // The controller can choose to return the full entity or a specific message.
     await this.updateEmployeeProfileImageUseCase.execute(id, imageUrl);
 
-    return { message: 'Imagen de perfil actualizada correctamente.', url: imageUrl };
+    return {
+      message: 'Imagen de perfil actualizada correctamente.',
+      url: imageUrl,
+    };
   }
 }
-

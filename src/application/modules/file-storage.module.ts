@@ -7,4 +7,4 @@ import { ConfigModule } from '@nestjs/config';
   providers: [FileStorageService],
   exports: [FileStorageService],
 })
-export class FileStorageModule {} 
+export class FileStorageModule {}

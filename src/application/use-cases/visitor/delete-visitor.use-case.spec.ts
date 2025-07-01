@@ -24,7 +24,10 @@ describe('DeleteVisitorUseCase', () => {
   let repository: IVisitorRepository;
 
   const visitorId = 'visitor-uuid-to-delete';
-  const mockExistingVisitor = { id: visitorId, name: 'Visitor to Delete' } as Visitor;
+  const mockExistingVisitor = {
+    id: visitorId,
+    name: 'Visitor to Delete',
+  } as Visitor;
 
   beforeEach(async () => {
     jest.resetAllMocks(); // Reset all mocks
@@ -69,7 +72,9 @@ describe('DeleteVisitorUseCase', () => {
     it('should throw NotFoundException if visitor to delete is not found', async () => {
       mockVisitorRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute(visitorId)).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute(visitorId)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(repository.findById).toHaveBeenCalledWith(visitorId);
       expect(repository.remove).not.toHaveBeenCalled(); // Ensure remove is not called
       expect(mockLoggerService.warn).toHaveBeenCalledWith(
