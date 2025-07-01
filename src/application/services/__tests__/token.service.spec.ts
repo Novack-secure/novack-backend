@@ -1,208 +1,303 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
-import { TokenService } from '../token.service';
-import { Employee, RefreshToken } from '../../../domain/entities';
-import { UnauthorizedException } from '@nestjs/common';
+import { Test, TestingModule } from "@nestjs/testing";
+import { JwtService } from "@nestjs/jwt";
+import { getRepositoryToken } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { ConfigService } from "@nestjs/config";
+import { TokenService } from "../token.service";
+import { Employee, RefreshToken } from "../../../domain/entities";
+import { UnauthorizedException } from "@nestjs/common";
 
-describe('TokenService', () => {
-  let service: TokenService;
-  let mockJwtService: Partial<JwtService>;
-  let mockConfigService: Partial<ConfigService>;
-  let mockRefreshTokenRepository: Partial<Repository<RefreshToken>>;
-  let mockEmployeeRepository: Partial<Repository<Employee>>;
+import { Supplier } from "../../../domain/entities/supplier.entity"; // Import Supplier
+import { EmployeeCredentials } from "../../../domain/entities/employee-credentials.entity"; // Import EmployeeCredentials
+import { Card } from "../../../domain/entities/card.entity"; // Import Card
+import { ChatRoom } from "../../../domain/entities/chat-room.entity"; // Import ChatRoom
 
-  beforeEach(async () => {
-    mockJwtService = {
-      sign: jest.fn().mockReturnValue('test.jwt.token'),
-      verifyAsync: jest.fn().mockResolvedValue({ sub: 'test-id' }),
-    };
+describe("TokenService", () => {
+	let service: TokenService;
+	let mockJwtService: Partial<JwtService>;
+	let mockConfigService: Partial<ConfigService>;
+	let mockRefreshTokenRepository: Partial<Repository<RefreshToken>>;
+	let mockEmployeeRepository: Partial<Repository<Employee>>;
 
-    mockConfigService = {
-      get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
-        switch (key) {
-          case 'JWT_SECRET':
-            return 'test-secret';
-          case 'JWT_ACCESS_EXPIRATION':
-            return '15m';
-          case 'JWT_REFRESH_EXPIRATION_DAYS':
-            return '7';
-          default:
-            return defaultValue;
-        }
-      }),
-    };
+	beforeEach(async () => {
+		mockJwtService = {
+			sign: jest.fn().mockReturnValue("test.jwt.token"),
+			verifyAsync: jest.fn().mockResolvedValue({ sub: "test-id" }),
+		};
 
-    mockRefreshTokenRepository = {
-      create: jest.fn().mockImplementation((entity) => entity),
-      save: jest.fn().mockImplementation((entity) => Promise.resolve({
-        id: 'refresh-token-id',
-        ...entity,
-      })),
-      findOne: jest.fn(),
-      update: jest.fn().mockImplementation(() => Promise.resolve({ affected: 1 })),
-    };
+		mockConfigService = {
+			get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
+				switch (key) {
+					case "JWT_SECRET":
+						return "test-secret";
+					case "JWT_ACCESS_EXPIRATION":
+						return "15m";
+					case "JWT_REFRESH_EXPIRATION_DAYS":
+						return "7";
+					default:
+						return defaultValue;
+				}
+			}),
+		};
 
-    mockEmployeeRepository = {
-      exists: jest.fn().mockResolvedValue(true),
-    };
+		mockRefreshTokenRepository = {
+			create: jest.fn().mockImplementation((entity) => entity),
+			save: jest.fn().mockImplementation((entity) =>
+				Promise.resolve({
+					id: "refresh-token-id",
+					...entity,
+				}),
+			),
+			findOne: jest.fn(),
+			update: jest
+				.fn()
+				.mockImplementation(() => Promise.resolve({ affected: 1 })),
+		};
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TokenService,
-        {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
-        {
-          provide: getRepositoryToken(RefreshToken),
-          useValue: mockRefreshTokenRepository,
-        },
-        {
-          provide: getRepositoryToken(Employee),
-          useValue: mockEmployeeRepository,
-        },
-      ],
-    }).compile();
+		mockEmployeeRepository = {
+			exists: jest.fn().mockResolvedValue(true),
+		};
 
-    service = module.get<TokenService>(TokenService);
-  });
+		const module: TestingModule = await Test.createTestingModule({
+			providers: [
+				TokenService,
+				{
+					provide: JwtService,
+					useValue: mockJwtService,
+				},
+				{
+					provide: ConfigService,
+					useValue: mockConfigService,
+				},
+				{
+					provide: getRepositoryToken(RefreshToken),
+					useValue: mockRefreshTokenRepository,
+				},
+				{
+					provide: getRepositoryToken(Employee),
+					useValue: mockEmployeeRepository,
+				},
+			],
+		}).compile();
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
+		service = module.get<TokenService>(TokenService);
+	});
 
-  describe('generateTokens', () => {
-    const mockEmployee = {
-      id: 'employee-id',
-      email: 'test@example.com',
-      name: 'Test User',
-      is_creator: false,
-      supplier: { id: 'supplier-id' },
-    } as Employee;
+	it("should be defined", () => {
+		expect(service).toBeDefined();
+	});
 
-    const mockRequest = {
-      headers: {
-        'user-agent': 'test-user-agent',
-      },
-      ip: '127.0.0.1',
-    } as any;
+	describe("generateTokens", () => {
+		const mockFullEmployee: Employee = {
+			id: "employee-id",
+			email: "test@example.com",
+			first_name: "Test",
+			last_name: "User",
+			is_creator: false,
+			supplier_id: "supplier-id",
+			created_at: new Date(),
+			updated_at: new Date(),
+			phone: null,
+			position: null,
+			department: null,
+			profile_image_url: null,
+			supplier: {
+				id: "supplier-id",
+				supplier_name: "Mock Supplier",
+			} as Supplier,
+			credentials: {
+				id: "cred-id",
+				is_email_verified: true,
+				two_factor_enabled: false,
+				password_hash: "hashedpassword", // Required
+				is_sms_2fa_enabled: false, // Required (has default)
+				phone_number_verified: false, // Required (has default)
+				employee_id: "employee-id", // Required
+				// Optional / Nullable fields
+				two_factor_secret: null,
+				backup_codes: [],
+				reset_token: null,
+				reset_token_expires: null,
+				verification_token: null,
+				// verification_token_expires_at: null, // Not in EmployeeCredentials entity
+				sms_otp_code: null,
+				sms_otp_code_expires_at: null,
+				last_login: null,
+				employee: null, // Circular, set to null
+			} as EmployeeCredentials,
+			cards: [],
+			chat_rooms: [],
+		};
 
-    it('should generate access and refresh tokens', async () => {
-      const result = await service.generateTokens(mockEmployee, mockRequest);
+		const mockRequest = {
+			headers: {
+				"user-agent": "test-user-agent",
+			},
+			ip: "127.0.0.1",
+		} as any;
 
-      expect(result).toHaveProperty('access_token');
-      expect(result).toHaveProperty('refresh_token');
-      expect(result).toHaveProperty('expires_in');
-      expect(result).toHaveProperty('token_type', 'Bearer');
-      
-      expect(mockJwtService.sign).toHaveBeenCalled();
-      expect(mockRefreshTokenRepository.create).toHaveBeenCalled();
-      expect(mockRefreshTokenRepository.save).toHaveBeenCalled();
-    });
-  });
+		it("should generate access and refresh tokens", async () => {
+			// Temporarily set employee to null to satisfy EmployeeCredentials.employee relation if it's strict
+			if (mockFullEmployee.credentials)
+				(mockFullEmployee.credentials as any).employee = null;
 
-  describe('refreshAccessToken', () => {
-    const mockRefreshToken = 'valid-refresh-token';
-    const mockStoredToken = {
-      id: 'token-id',
-      token: 'hashed-token',
-      employee_id: 'employee-id',
-      is_revoked: false,
-      expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day in future
-      employee: {
-        id: 'employee-id',
-        email: 'test@example.com',
-      } as Employee,
-    };
+			const result = await service.generateTokens(
+				mockFullEmployee,
+				mockRequest,
+			);
 
-    beforeEach(() => {
-      // Mock the hashToken method without exposing it
-      jest.spyOn(service as any, 'hashToken').mockReturnValue('hashed-token');
-    });
+			expect(result).toHaveProperty("access_token");
+			expect(result).toHaveProperty("refresh_token");
+			expect(result).toHaveProperty("expires_in");
+			expect(result).toHaveProperty("token_type", "Bearer");
 
-    it('should refresh tokens when valid refresh token is provided', async () => {
-      (mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce(mockStoredToken);
-      jest.spyOn(service, 'generateTokens').mockResolvedValueOnce({
-        access_token: 'new-access-token',
-        refresh_token: 'new-refresh-token',
-        expires_in: 900,
-        token_type: 'Bearer',
-      });
+			expect(mockJwtService.sign).toHaveBeenCalled();
+			expect(mockRefreshTokenRepository.create).toHaveBeenCalled();
+			expect(mockRefreshTokenRepository.save).toHaveBeenCalled();
+		});
+	});
 
-      const result = await service.refreshAccessToken(mockRefreshToken);
+	describe("refreshAccessToken", () => {
+		const mockRefreshToken = "valid-refresh-token";
+		const mockStoredToken = {
+			id: "token-id",
+			token: "hashed-token",
+			employee_id: "employee-id",
+			is_revoked: false,
+			expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day in future
+			employee: {
+				id: "employee-id",
+				email: "test@example.com",
+				first_name: "Test",
+				last_name: "User",
+				is_creator: false,
+				supplier_id: "supplier-id",
+				created_at: new Date(),
+				updated_at: new Date(),
+				phone: null,
+				position: null,
+				department: null,
+				profile_image_url: null,
+				supplier: {
+					id: "supplier-id",
+					supplier_name: "Mock Supplier",
+				} as Supplier,
+				credentials: {
+					id: "cred-id",
+					is_email_verified: true,
+					two_factor_enabled: false,
+					password_hash: "hashedpassword", // Required
+					is_sms_2fa_enabled: false, // Required (has default)
+					phone_number_verified: false, // Required (has default)
+					employee_id: "employee-id", // Required
+					// Optional / Nullable fields
+					two_factor_secret: null,
+					backup_codes: [],
+					reset_token: null,
+					reset_token_expires: null,
+					verification_token: null,
+					// verification_token_expires_at: null, // Not in EmployeeCredentials entity
+					sms_otp_code: null,
+					sms_otp_code_expires_at: null,
+					last_login: null,
+					employee: null, // Circular, set to null
+				} as EmployeeCredentials,
+				cards: [],
+				chat_rooms: [],
+			} as Employee,
+		};
 
-      expect(result).toHaveProperty('access_token', 'new-access-token');
-      expect(result).toHaveProperty('refresh_token', 'new-refresh-token');
-      expect(mockRefreshTokenRepository.update).toHaveBeenCalled();
-    });
+		beforeEach(() => {
+			// Mock the hashToken method without exposing it
+			jest.spyOn(service as any, "hashToken").mockReturnValue("hashed-token");
+		});
 
-    it('should throw UnauthorizedException for invalid refresh token', async () => {
-      (mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce(null);
+		it("should refresh tokens when valid refresh token is provided", async () => {
+			(mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce(
+				mockStoredToken,
+			);
+			jest.spyOn(service, "generateTokens").mockResolvedValueOnce({
+				access_token: "new-access-token",
+				refresh_token: "new-refresh-token",
+				expires_in: 900,
+				token_type: "Bearer",
+			});
 
-      await expect(service.refreshAccessToken(mockRefreshToken))
-        .rejects
-        .toThrow(UnauthorizedException);
-    });
+			const result = await service.refreshAccessToken(mockRefreshToken);
 
-    it('should throw UnauthorizedException for revoked token', async () => {
-      (mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce({
-        ...mockStoredToken,
-        is_revoked: true,
-      });
+			expect(result).toHaveProperty("access_token", "new-access-token");
+			expect(result).toHaveProperty("refresh_token", "new-refresh-token");
+			expect(mockRefreshTokenRepository.update).toHaveBeenCalled();
+		});
 
-      await expect(service.refreshAccessToken(mockRefreshToken))
-        .rejects
-        .toThrow(UnauthorizedException);
-    });
+		it("should throw UnauthorizedException for invalid refresh token", async () => {
+			(mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce(
+				null,
+			);
 
-    it('should throw UnauthorizedException for expired token', async () => {
-      (mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce({
-        ...mockStoredToken,
-        expires_at: new Date(Date.now() - 1000), // Expired token
-      });
+			await expect(
+				service.refreshAccessToken(mockRefreshToken),
+			).rejects.toThrow(UnauthorizedException);
+		});
 
-      await expect(service.refreshAccessToken(mockRefreshToken))
-        .rejects
-        .toThrow(UnauthorizedException);
-    });
-  });
+		it("should throw UnauthorizedException for revoked token", async () => {
+			(mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce({
+				...mockStoredToken,
+				is_revoked: true,
+			});
 
-  describe('validateToken', () => {
-    const mockToken = 'valid.jwt.token';
+			await expect(
+				service.refreshAccessToken(mockRefreshToken),
+			).rejects.toThrow(UnauthorizedException);
+		});
 
-    it('should return payload for valid token', async () => {
-      const mockPayload = { sub: 'test-id' };
-      (mockJwtService.verifyAsync as jest.Mock).mockResolvedValueOnce(mockPayload);
-      (mockEmployeeRepository.exists as jest.Mock).mockResolvedValueOnce(true);
+		it("should throw UnauthorizedException for expired token", async () => {
+			(mockRefreshTokenRepository.findOne as jest.Mock).mockResolvedValueOnce({
+				...mockStoredToken,
+				expires_at: new Date(Date.now() - 1000), // Expired token
+			});
 
-      const result = await service.validateToken(mockToken);
+			await expect(
+				service.refreshAccessToken(mockRefreshToken),
+			).rejects.toThrow(UnauthorizedException);
+		});
+	});
 
-      expect(result).toEqual(mockPayload);
-    });
+	describe("validateToken", () => {
+		const mockToken = "valid.jwt.token";
 
-    it('should throw UnauthorizedException for invalid token', async () => {
-      (mockJwtService.verifyAsync as jest.Mock).mockRejectedValueOnce(new Error());
+		it("should return payload for valid token", async () => {
+			const mockPayload = { sub: "test-id" };
+			(mockJwtService.verifyAsync as jest.Mock).mockResolvedValueOnce(
+				mockPayload,
+			);
+			(mockEmployeeRepository.exists as jest.Mock).mockResolvedValueOnce(true);
 
-      await expect(service.validateToken(mockToken))
-        .rejects
-        .toThrow(UnauthorizedException);
-    });
+			const result = await service.validateToken(mockToken);
 
-    it('should throw UnauthorizedException if user no longer exists', async () => {
-      const mockPayload = { sub: 'test-id' };
-      (mockJwtService.verifyAsync as jest.Mock).mockResolvedValueOnce(mockPayload);
-      (mockEmployeeRepository.exists as jest.Mock).mockResolvedValueOnce(false);
+			expect(result).toEqual(mockPayload);
+		});
 
-      await expect(service.validateToken(mockToken))
-        .rejects
-        .toThrow(UnauthorizedException);
-    });
-  });
-}); 
+		it("should throw UnauthorizedException for invalid token", async () => {
+			(mockJwtService.verifyAsync as jest.Mock).mockRejectedValueOnce(
+				new Error(),
+			);
+
+			await expect(service.validateToken(mockToken)).rejects.toThrow(
+				UnauthorizedException,
+			);
+		});
+
+		it("should throw UnauthorizedException if user no longer exists", async () => {
+			const mockPayload = { sub: "test-id" };
+			(mockJwtService.verifyAsync as jest.Mock).mockResolvedValueOnce(
+				mockPayload,
+			);
+			(mockEmployeeRepository.exists as jest.Mock).mockResolvedValueOnce(false);
+
+			await expect(service.validateToken(mockToken)).rejects.toThrow(
+				UnauthorizedException,
+			);
+		});
+	});
+});

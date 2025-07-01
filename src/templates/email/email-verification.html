@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifica tu correo electrónico - SP-CEDES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background-color: #fff; border: 1px solid #ddd; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { color: #0056b3; text-align: center; }
+        p { line-height: 1.6; }
+        .button-container { text-align: center; margin: 30px 0; }
+        .button { background-color: #007bff; color: white !important; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 1.1em; display: inline-block; }
+        .link-block { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; word-break: break-all; text-align: center; }
+        .link-block a { color: #007bff; }
+        .warning-block { background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 5px solid #ffc107;}
+        .warning-block p { color: #856404; margin: 0; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Verifica tu correo electrónico</h1>
+
+        <p>Hola {{employeeName}},</p>
+
+        <p>Gracias por registrarte en SP-CEDES. Para completar tu registro, por favor verifica tu dirección de correo electrónico haciendo clic en el siguiente botón:</p>
+
+        <div class="button-container">
+            <a href="{{verificationUrl}}" class="button">Verificar correo electrónico</a>
+        </div>
+
+        <p style="color: #555;">
+            Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:
+        </p>
+
+        <div class="link-block">
+            <a href="{{verificationUrl}}">{{verificationUrl}}</a>
+        </div>
+
+        <div class="warning-block">
+            <p><strong>⚠️ Importante:</strong> Este enlace expirará en 24 horas por razones de seguridad.</p>
+        </div>
+
+        <p style="color: #555;">
+            Si no solicitaste esta verificación, puedes ignorar este correo.
+        </p>
+
+        <div class="footer">
+            © {{year}} SP-CEDES. Todos los derechos reservados.
+        </div>
+    </div>
+</body>
+</html>

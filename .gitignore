@@ -1,8 +1,8 @@
 # Docker
-docker_data/
-docker-compose.logging.yml
-docker-compose.yml
-Dockerfile
+# docker_data/
+# docker-compose.logging.yml
+# docker-compose.yml
+# Dockerfile
 
 # compiled output
 /dist

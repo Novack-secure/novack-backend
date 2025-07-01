@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Correo electrónico verificado exitosamente! - SP-CEDES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background-color: #fff; border: 1px solid #ddd; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { color: #28a745; text-align: center; } /* Green for success */
+        p { line-height: 1.6; }
+        .success-block { background-color: #d4edda; padding: 20px; border-radius: 5px; margin: 25px 0; border-left: 5px solid #28a745;}
+        .success-block p { color: #155724; margin: 0; font-size: 1.1em; }
+        .login-button-container { text-align: center; margin: 30px 0; }
+        .login-button { background-color: #007bff; color: white !important; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 1.1em; display: inline-block; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>¡Correo verificado exitosamente!</h1>
+
+        <p>Hola {{employeeName}},</p>
+
+        <p>Tu dirección de correo electrónico ha sido verificada exitosamente. Ahora puedes acceder a todas las funcionalidades de SP-CEDES.</p>
+
+        <div class="success-block">
+            <p><strong>✅ Cuenta verificada:</strong> Ya puedes iniciar sesión y utilizar todas las funciones de la plataforma.</p>
+        </div>
+
+        <!-- Optional: Add a direct login button -->
+        <!--
+        <div class="login-button-container">
+            <a href="{{loginUrl}}" class="login-button">Iniciar Sesión</a>
+        </div>
+        -->
+
+        <p style="color: #555;">
+            Si tienes alguna pregunta o necesitas ayuda, no dudes en contactarnos.
+        </p>
+
+        <div class="footer">
+            © {{year}} SP-CEDES. Todos los derechos reservados.
+        </div>
+    </div>
+</body>
+</html>

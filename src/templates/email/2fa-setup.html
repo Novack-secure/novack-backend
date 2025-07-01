@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración de Autenticación de Dos Factores</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background-color: #fff; border: 1px solid #ddd; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { color: #0056b3; text-align: center; }
+        p { line-height: 1.6; }
+        .code-block { background-color: #e9f7ff; padding: 15px; border-radius: 5px; margin: 25px 0; text-align: center; border: 1px dashed #0056b3; }
+        .code-block p { font-size: 1.2em; margin-bottom: 10px; color: #004085; }
+        .code-block code { font-size: 2.2em; color: #0056b3; font-weight: bold; padding: 5px 10px; background-color: #fff; border-radius: 4px; }
+        .warning-block { background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 25px 0; border-left: 5px solid #ffc107;}
+        .warning-block p { color: #856404; margin: 0; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Configuración de 2FA</h1>
+
+        <p>Hola {{employeeName}},</p>
+
+        <p>Has solicitado activar la autenticación de dos factores (2FA) para tu cuenta en SP-CEDES.</p>
+
+        <div class="code-block">
+            <p>Tu código de verificación es:</p>
+            <code>{{verificationCode}}</code>
+        </div>
+
+        <div class="warning-block">
+            <p><strong>⚠️ Importante:</strong> Mantén este código seguro y no lo compartas con nadie. Este código se utiliza para verificar tu identidad al configurar la autenticación de dos factores.</p>
+        </div>
+
+        <p style="color: #555;">
+            Si no solicitaste esta configuración, por favor contacta inmediatamente con soporte técnico.
+        </p>
+
+        <div class="footer">
+            © {{year}} SP-CEDES. Todos los derechos reservados.
+        </div>
+    </div>
+</body>
+</html>

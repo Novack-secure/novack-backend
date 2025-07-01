@@ -7,13 +7,9 @@ import { AuthModule } from "../../../application/modules/auth.module";
 import { TokenModule } from "../../../application/modules/token.module";
 
 @Module({
-  imports: [
-    ConfigModule,
-    AuthModule,
-    TokenModule,
-  ],
-  providers: [RedisDatabaseService],
-  controllers: [RedisDatabaseController],
-  exports: [RedisDatabaseService],
+	imports: [ConfigModule, AuthModule, TokenModule],
+	providers: [RedisDatabaseService],
+	controllers: [RedisDatabaseController],
+	exports: [RedisDatabaseService],
 })
 export class RedisDatabaseModule {}

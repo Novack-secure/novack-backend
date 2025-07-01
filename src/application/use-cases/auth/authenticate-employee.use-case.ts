@@ -1,71 +1,66 @@
 /**
  * Caso de uso: Autenticar empleado
- * 
+ *
  * Implementa la lógica de autenticación de empleados usando sus credenciales.
  */
 
-import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
-import { IEmployeeRepository } from '../../../domain/repositories/employee.repository.interface';
-import { Employee } from '../../../domain/entities';
+import { Injectable, UnauthorizedException, Inject } from "@nestjs/common";
+// JwtService is no longer directly used here for signing if AuthService handles it via TokenService
+// import { JwtService } from '@nestjs/jwt';
+// bcrypt is also not directly used here anymore
+// import * as bcrypt from 'bcrypt';
+// IEmployeeRepository is also not directly used here anymore
+// import { IEmployeeRepository } from '../../../domain/repositories/employee.repository.interface';
+import { Employee } from "../../../domain/entities";
+import { AuthService } from "../../services/auth.service"; // Import AuthService
+import { Request } from "express"; // Import Request
 
 export interface AuthenticateEmployeeDto {
-  email: string;
-  password: string;
+	email: string;
+	password: string;
 }
 
+// Update AuthenticationResult to match the output of TokenService via AuthService
 export interface AuthenticationResult {
-  access_token: string;
-  employee: Employee;
+	access_token: string;
+	refresh_token: string;
+	expires_in: number;
+	token_type: string;
+	employee: Partial<Employee>; // Or a specific Employee DTO
 }
 
 @Injectable()
 export class AuthenticateEmployeeUseCase {
-  constructor(
-    @Inject('IEmployeeRepository')
-    private readonly employeeRepository: IEmployeeRepository,
-    private readonly jwtService: JwtService,
-  ) {}
+	constructor(
+		// Remove direct dependencies if AuthService encapsulates all logic
+		// @Inject('IEmployeeRepository')
+		// private readonly employeeRepository: IEmployeeRepository,
+		// private readonly jwtService: JwtService,
+		private readonly authService: AuthService, // Inject AuthService
+	) {}
 
-  async execute(credentials: AuthenticateEmployeeDto): Promise<AuthenticationResult> {
-    // Buscar empleado por email
-    const employee = await this.employeeRepository.findByEmail(credentials.email);
-    
-    if (!employee || !employee.credentials) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
+	// Add Request to the signature
+	async execute(
+		credentials: AuthenticateEmployeeDto,
+		req: Request,
+	): Promise<AuthenticationResult> {
+		try {
+			// Delegate to AuthService.login, which now uses TokenService
+			const authResult = await this.authService.login(
+				credentials.email,
+				credentials.password,
+				req,
+			);
 
-    // Verificar contraseña
-    const isPasswordValid = await bcrypt.compare(
-      credentials.password,
-      employee.credentials.password_hash
-    );
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
-    // Verificar si el email está verificado
-    if (!employee.credentials.is_email_verified) {
-      throw new UnauthorizedException('El email no ha sido verificado');
-    }
-
-    // Actualizar último login
-    await this.employeeRepository.updateCredentials(employee.id, {
-      last_login: new Date()
-    });
-
-    // Generar token JWT
-    const payload = { 
-      sub: employee.id,
-      email: employee.email,
-      supplier_id: employee.supplier_id
-    };
-
-    return {
-      access_token: this.jwtService.sign(payload),
-      employee
-    };
-  }
-} 
+			// The authResult from authService.login now includes the full token set and employee
+			// Ensure the employee object is shaped as needed (e.g., omitting sensitive fields)
+			// AuthService already returns 'employee' which might be the full entity.
+			// Let's assume it's fine for now, or a DTO mapping would occur here or in AuthService.
+			return authResult as AuthenticationResult;
+		} catch (error) {
+			// The AuthService.login method already throws UnauthorizedException or other HttpExceptions
+			// Re-throwing them is standard.
+			throw error;
+		}
+	}
+}

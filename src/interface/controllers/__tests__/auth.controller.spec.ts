@@ -1,134 +1,204 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthController } from '../auth.controller';
-import { AuthService } from '../../../application/services/auth.service';
-import { UnauthorizedException } from '@nestjs/common';
-import { LoginDto } from '../../../domain/dtos/auth/login.dto';
-import { RefreshTokenDto } from '../../../domain/dtos/auth/refresh-token.dto';
-import { LogoutDto } from '../../../domain/dtos/auth/logout.dto';
+import { Test, TestingModule } from "@nestjs/testing";
+import { AuthController } from "../auth.controller";
+import { AuthService } from "src/application/services/auth.service";
+import { UnauthorizedException } from "@nestjs/common";
+import {
+	LoginDto,
+	LoginSmsVerifyDto,
+} from "src/application/dtos/auth/login.dto"; // LoginSmsVerifyDto was also missing
+import { RefreshTokenDto } from "src/application/dtos/auth/refresh-token.dto";
+import { LogoutDto } from "src/application/dtos/auth/logout.dto";
+import { AuthenticateEmployeeUseCase } from "src/application/use-cases/auth/authenticate-employee.use-case";
 
-describe('AuthController', () => {
-  let controller: AuthController;
-  let mockAuthService: Partial<AuthService>;
+describe("AuthController", () => {
+	let controller: AuthController;
+	let mockAuthService: Partial<AuthService>;
+	let mockAuthenticateEmployeeUseCase: Partial<AuthenticateEmployeeUseCase>;
 
-  beforeEach(async () => {
-    mockAuthService = {
-      login: jest.fn(),
-      refreshToken: jest.fn(),
-      logout: jest.fn(),
-    };
+	// Define a comprehensive mock request object at the top level of the describe block
+	const mockRequestBase = {
+		headers: { "user-agent": "jest-test" },
+		ip: "127.0.0.1",
+		cookies: {},
+		signedCookies: {},
+		get: jest.fn((name: string) => mockRequestBase.headers[name.toLowerCase()]), // Allow access to headers via get
+		header: jest.fn(
+			(name: string) => mockRequestBase.headers[name.toLowerCase()],
+		),
+		accepts: jest.fn(),
+		is: jest.fn(),
+		params: {},
+		query: {},
+		body: {},
+		method: "POST", // Default method
+		url: "/", // Default URL
+		route: { path: "/" },
+		user: null,
+		app: {} as any,
+		res: {} as any,
+		next: jest.fn(),
+		aborted: false,
+		httpVersion: "1.1",
+		httpVersionMajor: 1,
+		httpVersionMinor: 1,
+		complete: true,
+		connection: {} as any,
+		socket: {} as any,
+		trailers: {},
+		rawTrailers: [],
+		setTimeout: jest.fn() as any,
+		statusCode: 200,
+		statusMessage: "OK",
+		destroy: jest.fn(),
+		logIn: jest.fn(),
+		logOut: jest.fn(),
+		isAuthenticated: jest.fn(),
+		isUnauthenticated: jest.fn(),
+		session: {} as any,
+		flash: jest.fn(),
+	} as any; // Cast to any for simplicity in test setup
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [AuthController],
-      providers: [
-        {
-          provide: AuthService,
-          useValue: mockAuthService,
-        },
-      ],
-    }).compile();
+	beforeEach(async () => {
+		mockAuthService = {
+			login: jest.fn(),
+			refreshToken: jest.fn(),
+			logout: jest.fn(),
+			verifySmsOtpAndLogin: jest.fn(),
+		};
 
-    controller = module.get<AuthController>(AuthController);
-  });
+		mockAuthenticateEmployeeUseCase = {
+			execute: jest.fn(),
+		};
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
+		const module: TestingModule = await Test.createTestingModule({
+			controllers: [AuthController],
+			providers: [
+				{ provide: AuthService, useValue: mockAuthService },
+				{
+					provide: AuthenticateEmployeeUseCase,
+					useValue: mockAuthenticateEmployeeUseCase,
+				},
+			],
+		}).compile();
 
-  describe('login', () => {
-    const loginDto: LoginDto = {
-      email: 'test@example.com',
-      password: 'password123',
-    };
+		controller = module.get<AuthController>(AuthController);
+	});
 
-    const mockResponse = {
-      access_token: 'test-token',
-      refresh_token: 'test-refresh-token',
-      expires_in: 900,
-      token_type: 'Bearer',
-      employee: {
-        id: 'user-id',
-        name: 'Test User',
-        email: 'test@example.com',
-      },
-    };
+	it("should be defined", () => {
+		expect(controller).toBeDefined();
+	});
 
-    it('should return token and employee data on successful login', async () => {
-      (mockAuthService.login as jest.Mock).mockResolvedValueOnce(mockResponse);
+	describe("login", () => {
+		const loginDto: LoginDto = {
+			email: "test@example.com",
+			password: "password123",
+		};
 
-      // Create a mock request object
-      const mockRequest = {
-        headers: {
-          'user-agent': 'test-user-agent',
-        },
-        ip: '127.0.0.1',
-      };
+		// mockRequestBase is now defined at the describe level
 
-      const result = await controller.login(loginDto, mockRequest);
+		const mockResponse = {
+			access_token: "test-token",
+			refresh_token: "test-refresh-token",
+			expires_in: 900,
+			token_type: "Bearer",
+			employee: {
+				id: "user-id",
+				name: "Test User",
+				email: "test@example.com",
+			},
+		};
 
-      expect(result).toEqual(mockResponse);
-      expect(mockAuthService.login).toHaveBeenCalledWith(loginDto.email, loginDto.password, mockRequest);
-    });
+		it("should return token and employee data on successful login", async () => {
+			(
+				mockAuthenticateEmployeeUseCase.execute as jest.Mock
+			).mockResolvedValueOnce(mockResponse);
+			const req = {
+				...mockRequestBase,
+				body: loginDto,
+				url: "/auth/login",
+				method: "POST",
+			};
 
-    it('should throw UnauthorizedException on login failure', async () => {
-      const errorMessage = 'Credenciales inválidas';
-      const error = new UnauthorizedException(errorMessage);
-      (mockAuthService.login as jest.Mock).mockRejectedValueOnce(error);
+			const result = await controller.login(loginDto, req);
 
-      // Create a mock request object
-      const mockRequest = {
-        headers: {
-          'user-agent': 'test-user-agent',
-        },
-        ip: '127.0.0.1',
-      };
+			expect(result).toEqual(mockResponse);
+			expect(mockAuthenticateEmployeeUseCase.execute).toHaveBeenCalledWith(
+				loginDto,
+				req,
+			);
+		});
 
-      // En este caso, necesitamos usar un único expect y guardar la promesa para que el test no la resuelva antes de tiempo
-      await expect(controller.login(loginDto, mockRequest)).rejects.toThrow(UnauthorizedException);
-    });
-  });
+		it("should throw UnauthorizedException on login failure", async () => {
+			const errorMessage = "Credenciales inválidas";
+			const error = new UnauthorizedException(errorMessage);
+			(
+				mockAuthenticateEmployeeUseCase.execute as jest.Mock
+			).mockRejectedValueOnce(error);
+			const req = {
+				...mockRequestBase,
+				body: loginDto,
+				url: "/auth/login",
+				method: "POST",
+			};
 
-  describe('refreshToken', () => {
-    const refreshTokenDto: RefreshTokenDto = {
-      refresh_token: 'valid-refresh-token',
-    };
+			// En este caso, necesitamos usar un único expect y guardar la promesa para que el test no la resuelva antes de tiempo
+			await expect(controller.login(loginDto, req)).rejects.toThrow(
+				UnauthorizedException,
+			);
+		});
+	});
 
-    const mockResponse = {
-      access_token: 'new-access-token',
-      refresh_token: 'new-refresh-token',
-      expires_in: 900,
-      token_type: 'Bearer',
-    };
+	describe("refreshToken", () => {
+		const refreshTokenDto: RefreshTokenDto = {
+			refresh_token: "valid-refresh-token",
+		};
 
-    it('should return new tokens on successful refresh', async () => {
-      (mockAuthService.refreshToken as jest.Mock).mockResolvedValueOnce(mockResponse);
+		// mockRequestBase is now defined at the describe level
 
-      // Create a mock request object
-      const mockRequest = {
-        headers: {
-          'user-agent': 'test-user-agent',
-        },
-        ip: '127.0.0.1',
-      };
+		const mockResponse = {
+			access_token: "new-access-token",
+			refresh_token: "new-refresh-token",
+			expires_in: 900,
+			token_type: "Bearer",
+		};
 
-      const result = await controller.refreshToken(refreshTokenDto, mockRequest);
+		it("should return new tokens on successful refresh", async () => {
+			(mockAuthService.refreshToken as jest.Mock).mockResolvedValueOnce(
+				mockResponse,
+			);
+			const req = {
+				...mockRequestBase,
+				body: refreshTokenDto,
+				url: "/auth/refresh",
+				method: "POST",
+			};
 
-      expect(result).toEqual(mockResponse);
-      expect(mockAuthService.refreshToken).toHaveBeenCalledWith(refreshTokenDto.refresh_token, mockRequest);
-    });
-  });
+			const result = await controller.refreshToken(refreshTokenDto, req);
 
-  describe('logout', () => {
-    const logoutDto: LogoutDto = {
-      refresh_token: 'valid-refresh-token',
-    };
+			expect(result).toEqual(mockResponse);
+			expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
+				refreshTokenDto.refresh_token,
+				req,
+			);
+		});
+	});
 
-    it('should successfully logout', async () => {
-      (mockAuthService.logout as jest.Mock).mockResolvedValueOnce(true);
+	describe("logout", () => {
+		const logoutDto: LogoutDto = {
+			refresh_token: "valid-refresh-token",
+		};
 
-      const result = await controller.logout(logoutDto);
+		it("should successfully logout", async () => {
+			(mockAuthService.logout as jest.Mock).mockResolvedValueOnce({
+				message: "Logged out successfully",
+			});
 
-      expect(result).toEqual({ success: true });
-      expect(mockAuthService.logout).toHaveBeenCalledWith(logoutDto.refresh_token);
-    });
-  });
-}); 
+			const result = await controller.logout(logoutDto);
+
+			expect(result).toEqual({ message: "Logged out successfully" });
+			expect(mockAuthService.logout).toHaveBeenCalledWith(
+				logoutDto.refresh_token,
+			);
+		});
+	});
+});
