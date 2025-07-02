@@ -8,7 +8,7 @@
 	"scripts": {
 		"build": "nest build",
 		"seed": "ts-node src/database/seed/seed.ts",
-		"format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+		"format": "bunx biome format --write",
 		"start": "nest start",
 		"start:dev": "nest start --watch",
 		"start:debug": "nest start --debug --watch",
@@ -20,12 +20,8 @@
 		"test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand --config=jest.config.js",
 		"test:e2e": "jest --config ./test/jest-e2e.json",
 		"test:all": "bash test-plan/run-all-tests.sh",
-		"test:s3-connection": "ts-node src/scripts/test-s3-connection.ts",
-		"typeorm": "typeorm-ts-node-commonjs",
-		"migration:generate": "npm run typeorm -- migration:generate -d src/infrastructure/database/postgres/typeorm.config.ts",
-		"migration:create": "npm run typeorm -- migration:create",
-		"migration:run": "npm run typeorm -- migration:run -d src/infrastructure/database/postgres/typeorm.config.ts",
-		"migration:revert": "npm run typeorm -- migration:revert -d src/infrastructure/database/postgres/typeorm.config.ts"
+		"test:s3-connection": "ts-node scripts/test-s3-connection.ts",
+		"typeorm": "typeorm-ts-node-commonjs"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.810.0",
@@ -67,7 +63,7 @@
 		"resend": "^4.5.1",
 		"rxjs": "^7.8.2",
 		"sanitize-html": "^2.17.0",
-		"sharp": "^0.34.1",
+		"sharp": "^0.34.2",
 		"socket.io": "^4.8.1",
 		"socket.io-client": "^4.8.1",
 		"swagger-ui-express": "^5.0.1",

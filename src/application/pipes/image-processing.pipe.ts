@@ -5,7 +5,7 @@ import {
 	BadRequestException,
 	Logger,
 } from "@nestjs/common";
-import * as sharp from "sharp";
+import sharp from "sharp";
 
 // Asegúrate de tener instalado @types/multer si usas TypeScript
 // npm install --save-dev @types/multer

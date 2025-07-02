@@ -171,16 +171,19 @@ export class SupplierController {
 			);
 		}
 
-		const destinationPath = `profile/`;
-		const imageUrl = await this.fileStorageService.uploadFile(
+		const supplier = await this.supplierService.findOne(id);
+		
+		const imageUrl = await this.fileStorageService.uploadProfileImage(
 			bucketName,
 			file.buffer,
 			file.originalname,
 			file.mimetype,
-			destinationPath,
+			'supplier',
+			supplier.supplier_name,
+			supplier.id
 		);
 
-		await this.supplierService.updateProfileImageUrl(id, imageUrl);
+		await this.supplierService.update(id, { logo_url: imageUrl });
 
 		return {
 			message: "Imagen de perfil actualizada correctamente.",
