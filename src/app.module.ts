@@ -26,15 +26,17 @@ import { ChatModule } from "./application/modules/chat.module";
 import { CsrfModule } from "./application/modules/csrf.module";
 import { EncryptionModule } from "./application/modules/encryption.module";
 import { AuditModule } from "./application/modules/audit.module";
-import { APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_INTERCEPTOR, Reflector } from "@nestjs/core";
+
 import { DataMaskingInterceptor } from "./application/interceptors/data-masking.interceptor";
-import { RedisTestController } from "./interface/controllers/redis-test.controller";
+import { RedisTestController } from "./infrastructure/database/redis/redis-test.controller";
 import { LoggingModule } from "./infrastructure/logging/logging.module";
 import { LogstashModule } from "./infrastructure/services/logstash.module";
 import { HealthModule } from "./application/modules/health.module";
 import { TokenModule } from "./application/modules/token.module";
 import configuration from "./config/configuration";
 import { validate } from "./config/validation";
+import { ReflectorModule } from "./application/modules/reflector.module";
 
 /**
  * Root module of the application that configures and organizes all feature modules.
@@ -42,6 +44,7 @@ import { validate } from "./config/validation";
  */
 @Module({
 	imports: [
+		ReflectorModule,
 		// Global configuration module for environment variables
 		ConfigModule.forRoot({
 			load: [configuration],
@@ -67,26 +70,10 @@ import { validate } from "./config/validation";
 			},
 		]),
 		// Programación de tareas
+
 		ScheduleModule.forRoot(),
 
-		// Database and infrastructure modules
-		TypeOrmModule.forRootAsync({
-			imports: [ConfigModule],
-			inject: [ConfigService],
-			useFactory: (configService: ConfigService) => {
-				const dbConfig = configService.get("config.database");
-				return {
-					type: "postgres",
-					host: dbConfig.host,
-					port: dbConfig.port,
-					username: dbConfig.username,
-					password: dbConfig.password,
-					database: dbConfig.name,
-					autoLoadEntities: true,
-					synchronize: configService.get("config.nodeEnv") !== "production",
-				};
-			},
-		}),
+		PostgresqlDatabaseModule,
 		RedisDatabaseModule,
 
 		// Core business modules

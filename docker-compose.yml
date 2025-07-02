@@ -78,25 +78,45 @@ services:
       - elk_network
     restart: unless-stopped
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: postgres
-    command: -p 5430
-    ports:
-      - '5430:5430'
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=novack
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d novack -p 5430'] 
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app-network
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: postgres
+  #   # command: -p 5430
+  #   ports:
+  #     - '5432:5432'
+  #   environment:
+  #     # Valores antiguos (comentados)
+  #     # - POSTGRES_USER=postgres
+  #     # - POSTGRES_PASSWORD=postgres
+  #     # - POSTGRES_DB=novack
+  #     # Nuevos valores
+  #     - POSTGRES_USER=${POSTGRES_USER:-postgres}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+  #     - POSTGRES_DB=${POSTGRES_DB:-spcedes}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-spcedes}'] 
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - app-network
+
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: redis
+  #   ports:
+  #     - '6379:6379'
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
   # Servicio API modificado para manejar mejor las dependencias
   api:
@@ -104,43 +124,88 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '4000:4000'
+      - '${PORT:-4000}:${PORT:-4000}'
     environment:
-      - NODE_ENV=development
-      - COOKIE_SECRET=supersecretcookiesecret
+      # Valores antiguos (comentados)
+      # - NODE_ENV=production
+      # - COOKIE_SECRET=01JZ3C289F6PJ3KYT6XMDCEG4A
+      # - DB_TYPE=postgres
+      # - DB_HOST=postgres
+      # - DB_PORT=5430
+      # - DB_USERNAME=postgres
+      # - DB_PASSWORD=postgres
+      # - DB_NAME=novack
+      # - JWT_SECRET=UtahD6c3jgBkajP7eXmMu9E2FwGpRxQnSvCzKyV8ZfLtAqTs5bN4YdHr3WJ7mhk2
+      # - JWT_ACCESS_EXPIRATION=15m
+      # - JWT_REFRESH_EXPIRATION_DAYS=7
+      # - JWT_AUDIENCE=https://api.novack.com
+      # - JWT_ISSUER=SPCEDES_API
+      # - REDIS_HOST=redis-17374.c80.us-east-1-2.ec2.redns.redis-cloud.com
+      # - REDIS_PORT=17374
+      # - REDIS_USERNAME=default
+      # - REDIS_PASSWORD=vNrEVCdgtVb3A0Rr6Nb6H7JKKNxa4XYh
+      # - REDIS_TLS_ENABLED=true
+      
+      # Nuevos valores
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=${PORT:-4000}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      
+      # Database
       - DB_TYPE=postgres
-      - DB_HOST=postgres
-      - DB_PORT=5430
-      - DB_USERNAME=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=novack
-      - JWT_SECRET=UtahD6c3jgBkajP7eXmMu9E2FwGpRxQnSvCzKyV8ZfLtAqTs5bN4YdHr3WJ7mhk2
-      - JWT_ACCESS_EXPIRATION=15m
-      - JWT_REFRESH_EXPIRATION_DAYS=7
-      - JWT_AUDIENCE=https://api.novack.com
-      - JWT_ISSUER=SPCEDES_API
-      - RESEND_API_KEY=${RESEND_API_KEY} 
-      - REDIS_HOST=redis-17374.c80.us-east-1-2.ec2.redns.redis-cloud.com
-      - REDIS_PORT=17374
-      - REDIS_USERNAME=default
-      - REDIS_PASSWORD=vNrEVCdgtVb3A0Rr6Nb6H7JKKNxa4XYh
-      - REDIS_TLS_ENABLED=true
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_NAME:-spcedes}
+      
+      # JWT
+      - JWT_SECRET=${JWT_SECRET:-test_token}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-24h}
+      
+      # Email
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      
+      # Redis
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_USERNAME=${REDIS_USERNAME:-default}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      
+      # ESP32 Cards
+      - ESP32_AUTH_KEY=${ESP32_AUTH_KEY:-esp32_secret_key_12345}
+      
+      # AWS S3
+      - AWS_REGION=${AWS_REGION:-us-east-2}
+      - AWS_S3_EMPLOYEE_BUCKET_NAME=${AWS_S3_EMPLOYEE_BUCKET_NAME:-novack-employees-s3}
+      - AWS_S3_SUPPLIER_BUCKET_NAME=${AWS_S3_SUPPLIER_BUCKET_NAME:-novack-suppliers-s3}
+      - AWS_S3_VISITOR_BUCKET_NAME=${AWS_S3_VISITOR_BUCKET_NAME:-novack-visitors-s3}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      
+      # Cookie
+      - COOKIE_SECRET=${COOKIE_SECRET:-supersecretcookiesecret}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_TO_FILE=${LOG_TO_FILE:-true}
+      - ELK_ENABLED=${ELK_ENABLED:-true}
+      - ELK_HOST=${ELK_HOST:-http://elasticsearch:9200}
+      - APP_NAME=${APP_NAME:-novack-backend}
       - REDIS_ENCRYPTION_KEY=${REDIS_ENCRYPTION_KEY:-secure_encryption_key_for_redis_data}
       - LOGSTASH_HOST=logstash
       - LOGSTASH_PORT=50000
-      - ELASTICSEARCH_HOST=http://elasticsearch:9200
-      - ELK_ENABLED=true 
-      - DOCKER_CONTAINER=true
-      - LOG_TO_FILE=true
-      - LOG_LEVEL=info
-      # Variables para manejo de fallos de ELK
       - ELK_FAIL_SAFE=true
       - LOG_FALLBACK_CONSOLE=true
+      - DOCKER_CONTAINER=true
     depends_on:
-      postgres:
+      # postgres:
+      #   condition: service_healthy
+      # redis:
+      #   condition: service_healthy
+      elasticsearch:
         condition: service_healthy
-    # CAMBIO CRÍTICO: La API ya NO depende de logstash para iniciar
-    # En su lugar, manejamos la conexión de forma asíncrona
     networks:
       - app-network  
       - elk_network
@@ -148,14 +213,15 @@ services:
       - ./logs:/usr/src/app/logs
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:4000/health || exit 1"]
+      test: ["CMD-SHELL", "curl --fail http://localhost:${PORT:-4000}/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
 volumes:
-  postgres_data:
+  # postgres_data:
+  # redis_data:
   elasticsearch-data:
 
 networks:

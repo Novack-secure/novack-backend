@@ -42,7 +42,7 @@ async function bootstrap() {
 	}
 
 	const configService = app.get(ConfigService);
-	const port = configService.get<number>("PORT", 4000); // Use config service for port
+	const port = configService.get<number>("PORT", 4000); // Usar el puerto desde las variables de entorno
 
 	// Usar el logger adecuado según el modo
 	const logger = isSimpleLogging

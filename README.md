@@ -1,6 +1,7 @@
 # Novack Backend
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/EstebanCanales/novack-backend)
+
 ## Description
 
 Backend service for Novack project built with NestJS. This system provides a robust API for managing access control, employee management, visitor tracking, and security monitoring in corporate environments.
@@ -118,7 +119,89 @@ The project includes:
 
 ## Environment Variables
 
-Check `.env.example` for all required environment variables.
+Para configurar correctamente la aplicación, necesitas definir las siguientes variables de entorno:
+
+### Base de datos
+
+```
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+DB_NAME=your_database
+```
+
+### JWT
+
+```
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRATION=24h
+```
+
+### Aplicación
+
+```
+PORT=5000
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+```
+
+### Email
+
+```
+RESEND_API_KEY=your_resend_api_key
+```
+
+### Redis
+
+```
+REDIS_URL=redis://username:password@host:port
+REDIS_USERNAME=default
+REDIS_PASSWORD=your_redis_password
+REDIS_HOST=localhost
+REDIS_PORT=6379
+```
+
+### Postgres (Docker)
+
+```
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=spcedes
+```
+
+### ESP32 Cards
+
+```
+ESP32_AUTH_KEY=your_esp32_auth_key
+```
+
+### AWS S3
+
+```
+AWS_REGION=us-east-2
+AWS_S3_EMPLOYEE_BUCKET_NAME=your-employees-bucket
+AWS_S3_SUPPLIER_BUCKET_NAME=your-suppliers-bucket
+AWS_S3_VISITOR_BUCKET_NAME=your-visitors-bucket
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+```
+
+### Cookie
+
+```
+COOKIE_SECRET=your_cookie_secret
+```
+
+### Logging
+
+```
+LOG_LEVEL=info
+LOG_TO_FILE=true
+ELK_ENABLED=true
+ELK_HOST=http://localhost:9200
+APP_NAME=novack-backend
+```
 
 ## Módulo de Chat
 

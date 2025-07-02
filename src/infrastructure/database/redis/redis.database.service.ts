@@ -31,71 +31,94 @@ export class RedisDatabaseService implements OnModuleInit {
 		try {
 			// En entorno de pruebas, es posible que ya tengamos un cliente mock asignado
 			if (!this.redisClient) {
-				// Determinar si se debe usar TLS basado en una variable de entorno o el entorno
-				const useTLS =
-					this.configService.get<string>("REDIS_TLS", "false") === "true";
-
-				// Obtener configuraciones comunes
-				const username = this.configService.get("REDIS_USERNAME", "default");
-				const password = this.configService.get(
-					"REDIS_PASSWORD",
-					"veryhardpassword",
-				);
-				const host = this.configService.get("REDIS_HOST", "localhost");
-				const port = parseInt(this.configService.get("REDIS_PORT", "6379"));
-
-				this.logger.debug("Configurando conexión a Redis Cloud", null, {
-					useTLS,
-					host,
-					port,
-					username,
-					hasPassword: !!password,
-				});
-
-				// Configuración para Redis Cloud usando la biblioteca redis oficial
-				const clientOptions: any = {
-					username,
-					password,
-				};
-
-				// Configurar las opciones de socket según si TLS está habilitado o no
-				if (useTLS) {
-					clientOptions.socket = {
-						host,
-						port,
-						tls: true,
-						reconnectStrategy: (retries: number) => {
-							const delay = Math.min(retries * 50, 2000);
-							this.logger.log(
-								`Reintento de conexión a Redis Cloud en ${delay}ms`,
-								null,
-								{ retries, delay },
-							);
-							return delay;
+				// Verificar si existe una URL completa de Redis
+				const redisUrl = this.configService.get<string>("REDIS_URL");
+				
+				if (redisUrl) {
+					// Usar la URL completa si está disponible
+					this.logger.debug("Configurando conexión a Redis usando URL", null, {
+						redisUrl: "redis://***:***@host:port", // Ocultar credenciales en logs
+					});
+					
+					this.redisClient = createClient({
+						url: redisUrl,
+						socket: {
+							reconnectStrategy: (retries: number) => {
+								const delay = Math.min(retries * 50, 2000);
+								this.logger.log(
+									`Reintento de conexión a Redis en ${delay}ms`,
+									null,
+									{ retries, delay },
+								);
+								return delay;
+							},
 						},
-					};
+					});
 				} else {
-					clientOptions.socket = {
-						host,
-						port,
-						reconnectStrategy: (retries: number) => {
-							const delay = Math.min(retries * 50, 2000);
-							this.logger.log(
-								`Reintento de conexión a Redis Cloud en ${delay}ms`,
-								null,
-								{ retries, delay },
-							);
-							return delay;
-						},
-					};
-				}
+					// Configuración por componentes individuales
+					// Determinar si se debe usar TLS basado en una variable de entorno o el entorno
+					const useTLS =
+						this.configService.get<string>("REDIS_TLS", "false") === "true";
 
-				this.redisClient = createClient(clientOptions);
+					// Obtener configuraciones comunes
+					const username = this.configService.get("REDIS_USERNAME", "default");
+					const password = "***********"; // Ocultar contraseña
+					const host = this.configService.get("REDIS_HOST", "localhost");
+					const port = parseInt(this.configService.get("REDIS_PORT", "6379"));
+
+					this.logger.debug("Configurando conexión a Redis por componentes", null, {
+						useTLS,
+						host: "redis-host", // Ocultar host real
+						port: 9999, // Ocultar puerto real
+						username: "***", // Ocultar usuario
+						hasPassword: true,
+					});
+
+					// Configuración para Redis Cloud usando la biblioteca redis oficial
+					const clientOptions: any = {
+						username: this.configService.get("REDIS_USERNAME", "default"),
+						password: this.configService.get("REDIS_PASSWORD", ""),
+					};
+
+					// Configurar las opciones de socket según si TLS está habilitado o no
+					if (useTLS) {
+						clientOptions.socket = {
+							host: this.configService.get("REDIS_HOST", "localhost"),
+							port: parseInt(this.configService.get("REDIS_PORT", "6379")),
+							tls: true,
+							reconnectStrategy: (retries: number) => {
+								const delay = Math.min(retries * 50, 2000);
+								this.logger.log(
+									`Reintento de conexión a Redis en ${delay}ms`,
+									null,
+									{ retries, delay },
+								);
+								return delay;
+							},
+						};
+					} else {
+						clientOptions.socket = {
+							host: this.configService.get("REDIS_HOST", "localhost"),
+							port: parseInt(this.configService.get("REDIS_PORT", "6379")),
+							reconnectStrategy: (retries: number) => {
+								const delay = Math.min(retries * 50, 2000);
+								this.logger.log(
+									`Reintento de conexión a Redis en ${delay}ms`,
+									null,
+									{ retries, delay },
+								);
+								return delay;
+							},
+						};
+					}
+
+					this.redisClient = createClient(clientOptions);
+				}
 
 				this.redisClient.on("connect", () => {
 					const currentContext = StructuredLoggerService.getCurrentContext();
 					this.logger.log(
-						"Conexión a Redis Cloud establecida correctamente",
+						"Conexión a Redis establecida correctamente",
 						null,
 						{
 							correlationId: currentContext.correlationId,
@@ -106,7 +129,7 @@ export class RedisDatabaseService implements OnModuleInit {
 				this.redisClient.on("error", (error) => {
 					const currentContext = StructuredLoggerService.getCurrentContext();
 					this.logger.error(
-						`Error en la conexión a Redis Cloud: ${error.message}`,
+						`Error en la conexión a Redis: ${error.message}`,
 						null,
 						error.stack,
 						{
@@ -124,7 +147,7 @@ export class RedisDatabaseService implements OnModuleInit {
 		} catch (error) {
 			const currentContext = StructuredLoggerService.getCurrentContext();
 			this.logger.error(
-				`Error al inicializar Redis Cloud: ${error.message}`,
+				`Error al inicializar Redis: ${error.message}`,
 				null,
 				error.stack,
 				{
@@ -140,12 +163,12 @@ export class RedisDatabaseService implements OnModuleInit {
 	async testConnection() {
 		try {
 			await this.redisClient.ping();
-			this.logger.log("Conexión a Redis Cloud verificada con éxito");
-			return { status: "ok", message: "Conexión a Redis Cloud establecida" };
+			this.logger.log("Conexión a Redis verificada con éxito");
+			return { status: "ok", message: "Conexión a Redis establecida" };
 		} catch (error) {
 			const currentContext = StructuredLoggerService.getCurrentContext();
 			this.logger.error(
-				`Error al verificar conexión a Redis Cloud: ${error.message}`,
+				`Error al verificar conexión a Redis: ${error.message}`,
 				null,
 				error.stack,
 				{

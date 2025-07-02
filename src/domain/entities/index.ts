@@ -10,6 +10,7 @@ export * from "./employee.entity";
 export * from "./visitor.entity";
 export * from "./supplier.entity";
 export * from "./card.entity";
+export * from "./card-location.entity";
 export * from "./appointment.entity";
 
 // Entidades de comunicación y chat
