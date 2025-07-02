@@ -290,13 +290,18 @@ export class VisitorController {
 			);
 		}
 
-		const destinationPath = `profile/`; // Define a clear path within the bucket
-		const imageUrl = await this.fileStorageService.uploadFile(
+		// Obtener el visitante para acceder a su nombre
+		const visitor = await this.getVisitorDetailsUseCase.execute(id);
+		
+		// Usar el nuevo método uploadProfileImage que crea la carpeta con formato [nombre+uuid]
+		const imageUrl = await this.fileStorageService.uploadProfileImage(
 			bucketName,
 			file.buffer,
-			file.originalname, // Consider sanitizing or generating a unique name
+			file.originalname,
 			file.mimetype,
-			destinationPath,
+			'visitor',
+			visitor.name,
+			visitor.id
 		);
 
 		// Call the use case to update the visitor entity with the new URL
