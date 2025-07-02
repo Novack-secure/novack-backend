@@ -1,7 +1,8 @@
 import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+
 import { JwtModule } from "@nestjs/jwt";
-import { ScheduleModule } from "@nestjs/schedule";
+// import { ScheduleModule } from "@nestjs/schedule"; // Ya no es necesario aquí
 import { Card, CardLocation, Visitor, Appointment } from "src/domain/entities";
 import { CardSchedulerService } from "../services/card-scheduler.service";
 import { CardModule } from "./card.module";
@@ -20,7 +21,7 @@ import { TokenModule } from "./token.module";
 				signOptions: { expiresIn: "1d" },
 			}),
 		}),
-		ScheduleModule.forRoot(),
+		// ScheduleModule.forRoot(), // Eliminado para evitar doble inicialización
 		forwardRef(() => CardModule),
 	],
 	providers: [CardSchedulerService],

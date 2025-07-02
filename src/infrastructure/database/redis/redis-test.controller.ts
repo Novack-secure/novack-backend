@@ -6,16 +6,38 @@ import {
 	Param,
 	Delete,
 	Query,
+	UseGuards,
 } from "@nestjs/common";
-import { RedisDatabaseService } from "../../infrastructure/database/redis/redis.database.service";
+import { RedisDatabaseService } from "./redis.database.service";
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from "@nestjs/swagger";
-import { Public } from "../../application/decorators/public.decorator";
+import { Public } from "../../../application/decorators/public.decorator";
+import { ConfigService } from "@nestjs/config";
 
+/**
+ * ATENCIÓN: Este controlador solo debe estar disponible en entornos de desarrollo
+ * Contiene endpoints que podrían exponer información sensible
+ */
 @ApiTags("Redis Test")
 @Controller("redis-test")
-@Public()
 export class RedisTestController {
-	constructor(private readonly redisService: RedisDatabaseService) {}
+	constructor(
+		private readonly redisService: RedisDatabaseService,
+		private readonly configService: ConfigService
+	) {
+		// Desactivar este controlador en producción
+		if (this.configService.get('NODE_ENV') === 'production') {
+			// Reemplazar todos los métodos con una función que devuelve un error
+			const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(this))
+				.filter(method => method !== 'constructor');
+			
+			methods.forEach(method => {
+				this[method] = () => ({
+					error: 'Este endpoint no está disponible en producción',
+					status: 403
+				});
+			});
+		}
+	}
 
 	@Post()
 	@ApiOperation({ summary: "Guardar un dato en Redis" })
@@ -31,11 +53,20 @@ export class RedisTestController {
 		},
 	})
 	@ApiResponse({ status: 201, description: "Dato guardado correctamente" })
+	@Public()
 	async saveData(
 		@Body("key") key: string,
 		@Body("value") value: any,
 		@Body("ttl") ttl?: number,
 	) {
+		// Verificar que no se están guardando datos sensibles
+		if (key.includes("password") || key.includes("secret") || key.includes("token")) {
+			return {
+				success: false,
+				message: "No se permite guardar datos sensibles",
+			};
+		}
+		
 		await this.redisService.set(key, value, ttl);
 		return { success: true, message: "Dato guardado correctamente", key };
 	}
@@ -43,7 +74,16 @@ export class RedisTestController {
 	@Get(":key")
 	@ApiOperation({ summary: "Obtener un dato de Redis" })
 	@ApiResponse({ status: 200, description: "Dato recuperado correctamente" })
+	@Public()
 	async getData(@Param("key") key: string) {
+		// Verificar que no se están accediendo a datos sensibles
+		if (key.includes("password") || key.includes("secret") || key.includes("token")) {
+			return {
+				success: false,
+				message: "No se permite acceder a datos sensibles",
+			};
+		}
+		
 		const data = await this.redisService.get(key);
 		return { success: !!data, data };
 	}
@@ -51,6 +91,7 @@ export class RedisTestController {
 	@Delete(":key")
 	@ApiOperation({ summary: "Eliminar un dato de Redis" })
 	@ApiResponse({ status: 200, description: "Dato eliminado correctamente" })
+	@Public()
 	async deleteData(@Param("key") key: string) {
 		await this.redisService.delete(key);
 		return { success: true, message: "Dato eliminado correctamente", key };

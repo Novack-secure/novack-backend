@@ -12,6 +12,7 @@ import {
 import { Supplier } from "./supplier.entity";
 import { Visitor } from "./visitor.entity";
 import { Employee } from "./employee.entity";
+import { CardLocation } from "./card-location.entity";
 
 @Entity({ name: "cards" })
 export class Card {
@@ -78,34 +79,4 @@ export class Card {
 		(location) => location.card,
 	)
 	locations: CardLocation[];
-}
-
-@Entity({ name: "card_locations" })
-export class CardLocation {
-	@PrimaryGeneratedColumn("uuid")
-	id: string;
-
-	@Column({ type: "numeric", precision: 9, scale: 6 })
-	latitude: number;
-
-	@Column({ type: "numeric", precision: 9, scale: 6 })
-	longitude: number;
-
-	@Column({ type: "numeric", precision: 5, scale: 2, nullable: true })
-	accuracy: number;
-
-	@Column({ type: "timestamp" })
-	timestamp: Date;
-
-	@CreateDateColumn()
-	created_at: Date;
-
-	@ManyToOne(
-		() => Card,
-		(card) => card.locations,
-	)
-	card: Card;
-
-	@Column()
-	card_id: string;
 }
