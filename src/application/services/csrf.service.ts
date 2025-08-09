@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import * as Tokens from "csrf";
+import Tokens from "csrf";
 
 @Injectable()
 export class CsrfService {

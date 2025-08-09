@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from "socket.io";
 import { UseGuards } from "@nestjs/common";
 import { ChatService } from "src/application/services/chat.service";
+import { SupplierBotService } from "src/application/services/supplier-bot.service";
 import { CreateMessageDto } from "src/application/dtos/chat/create-message.dto";
 import { WsJwtGuard } from "../../application/guards/ws-jwt.guard";
 import { WsAuthUser } from "../../application/decorators/ws-auth-user.decorator";
@@ -29,9 +30,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	server: Server;
 
 	// Mapeo de usuarios conectados a sus sockets
-	private connectedClients = new Map<string, string[]>();
+    private connectedClients = new Map<string, string[]>();
 
-	constructor(private readonly chatService: ChatService) {}
+    constructor(
+        private readonly chatService: ChatService,
+        private readonly supplierBotService: SupplierBotService,
+    ) {}
 
 	async handleConnection(client: UserSocket) {
 		try {
@@ -160,7 +164,32 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 				message: e.message,
 			};
 		}
+
 	}
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage("sendMessageToBot")
+  async sendMessageToBot(
+    @ConnectedSocket() client: UserSocket,
+    @MessageBody() data: { roomId: string; content: string; supplierId: string },
+    @WsAuthUser() user: any,
+  ) {
+    try {
+      if (!data?.roomId || !data?.content || !data?.supplierId) {
+        return { status: "error", message: "roomId, content y supplierId son requeridos" };
+      }
+      const message = await this.supplierBotService.sendMessageToBot({
+        roomId: data.roomId,
+        prompt: data.content,
+        supplierId: data.supplierId,
+      });
+      // Emitir respuesta del bot
+      this.server.to(`room:${data.roomId}`).emit("newMessage", message);
+      return { status: "success", messageId: message.id };
+    } catch (e: any) {
+      return { status: "error", message: e.message };
+    }
+  }
 
 	@UseGuards(WsJwtGuard)
 	@SubscribeMessage("createPrivateRoom")
