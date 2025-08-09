@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
-import * as sanitizeHtml from "sanitize-html";
+import sanitizeHtml from "sanitize-html";
 
 /**
  * Interceptor que sanitiza las entradas para prevenir ataques XSS.

@@ -6,7 +6,7 @@ import { ConfigService } from "@nestjs/config";
 import { ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
-import * as cookieParser from "cookie-parser";
+import cookieParser from "cookie-parser";
 import { StructuredLoggerService } from "./infrastructure/logging/structured-logger.service";
 import { GlobalExceptionFilter } from "./infrastructure/filters/global-exception.filter";
 
