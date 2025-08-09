@@ -12,6 +12,8 @@ export function validate(config: Record<string, unknown>) {
 		"REDIS_PORT",
 		"JWT_SECRET",
 		"COOKIE_SECRET",
+    // Opcional, pero si queremos forzar para el bot, descomenta
+    // "DEEPSEE_API_URL",
 	];
 
 	for (const key of requiredKeys) {

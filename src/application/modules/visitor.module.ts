@@ -77,8 +77,9 @@ import {
 		ImageProcessingPipe, // Pipe used by VisitorController
 	],
 	exports: [
-		// VisitorService is removed
-		// Typically, use cases are not exported from feature modules unless shared.
+    // Exportar interfaces de repositorio para otros módulos (p.ej. ChatModule)
+    IAppointmentRepository,
+    IVisitorRepository,
 	],
 })
 export class VisitorModule {}

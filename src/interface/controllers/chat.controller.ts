@@ -11,13 +11,17 @@ import {
 } from "@nestjs/common";
 import { AuthGuard } from "src/application/guards/auth.guard";
 import { ChatService } from "src/application/services/chat.service";
+import { SupplierBotService } from "src/application/services/supplier-bot.service";
 import { CreateRoomDto } from "src/application/dtos/chat/create-room.dto";
 import { CreateMessageDto } from "src/application/dtos/chat/create-message.dto";
 
 @Controller("chat")
 @UseGuards(AuthGuard)
 export class ChatController {
-	constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly supplierBotService: SupplierBotService,
+  ) {}
 
 	@Get("rooms")
 	async getUserRooms(@Request() req) {
@@ -43,6 +47,21 @@ export class ChatController {
 	) {
 		return this.chatService.addMessage(createMessageDto, req.user);
 	}
+
+  @Post("messages/bot/:supplierId")
+  async sendMessageToBot(
+    @Param("supplierId") supplierId: string,
+    @Body() body: { roomId: string; content: string },
+  ) {
+    if (!body?.roomId || !body?.content) {
+      throw new BadRequestException("roomId y content son requeridos");
+    }
+    return this.supplierBotService.sendMessageToBot({
+      roomId: body.roomId,
+      prompt: body.content,
+      supplierId,
+    });
+  }
 
 	@Post("rooms/supplier/:supplierId")
 	async createSupplierGroupRoom(@Param("supplierId") supplierId: string) {

@@ -85,6 +85,9 @@ export class SupplierService {
 
 		await this.subscriptionRepository.save(subscription);
 
+		// Asociar la suscripción al proveedor en memoria para notificaciones posteriores
+		(savedSupplier as any).subscription = subscription;
+
 		this.logger.log(
 			`Supplier created successfully: ${savedSupplier.supplier_name} (ID: ${savedSupplier.id})`,
 		);

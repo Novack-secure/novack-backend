@@ -64,20 +64,29 @@ export class EmployeeRepository implements IEmployeeRepository {
 		});
 	}
 
-	async create(employeeData: Partial<Employee>): Promise<Employee> {
-		const newEmployee = this.employeeEntityRepository.create(employeeData);
+  async create(employeeData: Partial<Employee>): Promise<Employee> {
+    // Crear entidad de empleado en memoria
+    const newEmployee = this.employeeEntityRepository.create(employeeData);
 
-		// Si se proporcionan credenciales, crearlas
-		if (employeeData.credentials) {
-			const credentials = this.credentialsRepository.create(
-				employeeData.credentials,
-			);
-			newEmployee.credentials =
-				await this.credentialsRepository.save(credentials);
-		}
+    // Guardar primero el empleado para obtener su ID
+    const savedEmployee = await this.employeeEntityRepository.save(newEmployee);
 
-		return this.employeeEntityRepository.save(newEmployee);
-	}
+    // Si se proporcionan credenciales, enlazarlas al empleado y guardarlas
+    if (employeeData.credentials) {
+      const credentialsEntity = this.credentialsRepository.create({
+        ...employeeData.credentials,
+        employee: savedEmployee,
+        employee_id: savedEmployee.id,
+      } as any);
+
+      const savedCredentials = await this.credentialsRepository.save(
+        credentialsEntity as any,
+      );
+      (savedEmployee as any).credentials = savedCredentials as any;
+    }
+
+    return savedEmployee;
+  }
 
 	async update(id: string, employeeData: Partial<Employee>): Promise<Employee> {
 		// Si hay credenciales para actualizar

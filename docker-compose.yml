@@ -184,6 +184,12 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       
+      # Deepseek/Deepsee AI
+      - DEEPSEE_API_URL=${DEEPSEE_API_URL}
+      - DEEPSEE_API_KEY=${DEEPSEE_API_KEY}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      
       # Cookie
       - COOKIE_SECRET=${COOKIE_SECRET:-supersecretcookiesecret}
       
