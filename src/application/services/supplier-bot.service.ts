@@ -57,7 +57,10 @@ export class SupplierBotService {
     // Guardar mensaje del usuario (se espera guardado previo en flujo de chat)
     const context = await this.buildSupplierContext(supplierId);
 
-    const response = await this.deepsee.chat({ supplierId, prompt, context });
+    const promptWithFormat =
+      "Responde en español en 4–6 párrafos. Deja DOS líneas en blanco entre cada párrafo para mayor separación. Sé claro y profesional.\n\n" +
+      prompt;
+    const response = await this.deepsee.chat({ supplierId, prompt: promptWithFormat, context });
 
     // Persistir respuesta del bot como mensaje especial (sin sender humano)
     const botMessage = this.chatMessageRepo.create({
