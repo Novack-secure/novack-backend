@@ -4,7 +4,7 @@ import {
 	UnauthorizedException,
 	InternalServerErrorException,
 } from "@nestjs/common";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { StructuredLoggerService } from "../../../infrastructure/logging/structured-logger.service";
 import { TokenService } from "../token.service";
 import { Employee } from "../../../domain/entities";

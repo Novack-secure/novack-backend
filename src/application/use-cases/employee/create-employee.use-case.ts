@@ -2,7 +2,7 @@ import { Injectable, Inject, BadRequestException } from "@nestjs/common";
 import { IEmployeeRepository } from "src/domain/repositories/employee.repository.interface"; // Fixed path
 import { Employee } from "src/domain/entities"; // Fixed path
 import { CreateEmployeeDto } from "src/application/dtos/employee/create-employee.dto"; // Fixed path
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { StructuredLoggerService } from "src/infrastructure/logging/structured-logger.service"; // Fixed path
 
 @Injectable()

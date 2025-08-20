@@ -6,7 +6,7 @@ import { Employee, Supplier } from "src/domain/entities";
 import { EmployeeCredentials } from "src/domain/entities/employee-credentials.entity";
 import { BadRequestException } from "@nestjs/common";
 import { CreateEmployeeDto, UpdateEmployeeDto } from "../../dtos/employee";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { IEmployeeRepository } from "../../../domain/repositories/employee.repository.interface";
 import { StructuredLoggerService } from "../../../infrastructure/logging/structured-logger.service"; // Added import
 

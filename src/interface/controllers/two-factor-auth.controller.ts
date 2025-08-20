@@ -11,20 +11,24 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from "@nestjs/swagger";
 import { AuthGuard } from "src/application/guards/auth.guard";
+import { Public } from "src/application/decorators/public.decorator";
 import { TwoFactorAuthService } from "../../application/services/two-factor-auth.service";
 import {
-	Enable2FADto,
-	Verify2FADto,
-	Disable2FADto,
-	BackupCodeDto,
-	// Import new DTOs for SMS 2FA
-	InitiateSmsVerificationDto,
-	VerifySmsOtpDto,
+    Enable2FADto,
+    Verify2FADto,
+    Disable2FADto,
+    BackupCodeDto,
+    // Import new DTOs for SMS 2FA
+    InitiateSmsVerificationDto,
+    VerifySmsOtpDto,
+    InitiateSmsVerificationPublicDto,
+    VerifySmsOtpPublicDto,
+  InitiateEmailVerificationPublicDto,
+  VerifyEmailOtpPublicDto,
 } from "../../application/dtos/employee/two-factor-auth.dto";
 
 @ApiTags("Autenticación de Dos Factores (2FA)") // Updated Tag for clarity
 @Controller("2fa")
-@UseGuards(AuthGuard)
 export class TwoFactorAuthController {
 	constructor(private readonly twoFactorAuthService: TwoFactorAuthService) {}
 
@@ -246,4 +250,56 @@ export class TwoFactorAuthController {
 		await this.twoFactorAuthService.disableSmsTwoFactor(employeeId);
 		return { sms2faEnabled: false }; // Reflecting the new state
 	}
+
+  // --- Public endpoints for registration SMS verification ---
+  @Post("sms/public/initiate")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Iniciar verificación SMS pública (registro)" })
+  @Public()
+  async initiateSmsPublic(@Body() dto: InitiateSmsVerificationPublicDto): Promise<void> {
+    // Regla: si se provee employee_id => flujo autenticado; si se provee solo email => SIEMPRE flujo público
+    if (dto.employee_id) {
+      await this.twoFactorAuthService.initiateSmsVerification(dto.employee_id, dto.phone_number);
+      return;
+    }
+    if (!dto.employee_email) {
+      throw new BadRequestException('Email es requerido para verificación pública');
+    }
+    await this.twoFactorAuthService.initiateSmsVerificationPublic(dto.employee_email, dto.phone_number);
+  }
+
+  @Post("sms/public/verify")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Verificar OTP SMS público (registro)" })
+  @Public()
+  async verifySmsPublic(@Body() dto: VerifySmsOtpPublicDto): Promise<{ verified: boolean }> {
+    // Regla: si se provee employee_id => flujo autenticado; si se provee solo email => flujo público
+    if (dto.employee_id) {
+      const verified = await this.twoFactorAuthService.verifySmsOtpForPhoneNumber(dto.employee_id, dto.otp);
+      return { verified };
+    }
+    if (!dto.employee_email) {
+      throw new BadRequestException('Email es requerido para verificación pública');
+    }
+    const verified = await this.twoFactorAuthService.verifySmsOtpPublic(dto.employee_email, dto.otp);
+    return { verified };
+  }
+
+  // --- Public EMAIL verification endpoints ---
+  @Post("email/public/initiate")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Iniciar verificación por EMAIL pública (registro)" })
+  @Public()
+  async initiateEmailPublic(@Body() dto: InitiateEmailVerificationPublicDto): Promise<void> {
+    await this.twoFactorAuthService.initiateEmailVerificationPublic(dto.employee_email /* locale WIP: dto.locale */);
+  }
+
+  @Post("email/public/verify")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Verificar OTP por EMAIL público (registro)" })
+  @Public()
+  async verifyEmailPublic(@Body() dto: VerifyEmailOtpPublicDto): Promise<{ verified: boolean }> {
+    const verified = await this.twoFactorAuthService.verifyEmailOtpPublic(dto.employee_email, dto.otp);
+    return { verified };
+  }
 }

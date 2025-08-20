@@ -4,7 +4,7 @@ import { UpdateEmployeeDto } from "../dtos/employee";
 import { Employee } from "src/domain/entities";
 // EmployeeCredentials seems not to be directly used for DTOs here
 // import { EmployeeCredentials } from 'src/domain/entities/employee-credentials.entity';
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { IEmployeeRepository } from "../../domain/repositories/employee.repository.interface";
 import { StructuredLoggerService } from "src/infrastructure/logging/structured-logger.service"; // Added import
 

@@ -5,7 +5,7 @@ import { StructuredLoggerService } from "src/infrastructure/logging/structured-l
 import { Employee } from "src/domain/entities/employee.entity"; // Fixed
 import { CreateEmployeeDto } from "src/application/dtos/employee/create-employee.dto"; // Fixed
 import { BadRequestException } from "@nestjs/common";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 
 // Mock bcrypt
 jest.mock("bcrypt", () => ({

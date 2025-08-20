@@ -15,6 +15,7 @@ import { IEmployeeRepository } from "../../domain/repositories/employee.reposito
 // import { EmployeeCredentials } from '../../domain/entities/employee-credentials.entity';
 import { StructuredLoggerService } from "src/infrastructure/logging/structured-logger.service"; // Added import
 import { SmsService } from "../services/sms.service"; // Added import for SmsService
+import { RedisDatabaseService } from "src/infrastructure/database/redis/redis.database.service";
 
 @Injectable()
 export class TwoFactorAuthService {
@@ -24,7 +25,8 @@ export class TwoFactorAuthService {
 		@Inject("IEmployeeRepository")
 		private readonly employeeRepository: IEmployeeRepository,
 		private readonly logger: StructuredLoggerService, // Added logger
-		private readonly smsService: SmsService, // Injected SmsService
+    private readonly smsService: SmsService, // Injected SmsService
+    private readonly redis: RedisDatabaseService,
 	) {
 		this.logger.setContext("TwoFactorAuthService"); // Set context
 	}
@@ -405,21 +407,26 @@ export class TwoFactorAuthService {
 
 	// --- SMS 2FA Methods ---
 
-	async initiateSmsVerification(
-		employeeId: string,
-		phoneNumber: string,
-	): Promise<void> {
-		this.logger.log(
+  async initiateSmsVerification(
+    employeeIdOrEmail: string,
+    phoneNumber: string,
+  ): Promise<void> {
+    this.logger.log(
 			"Initiating SMS phone verification",
 			undefined,
-			JSON.stringify({ employeeId, phoneNumber }),
+      JSON.stringify({ employeeIdOrEmail, phoneNumber }),
 		);
-		const employee = await this.employeeRepository.findById(employeeId);
+    const isUuidV4 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(
+      employeeIdOrEmail,
+    );
+    const employee = isUuidV4
+      ? await this.employeeRepository.findById(employeeIdOrEmail)
+      : await this.employeeRepository.findByEmail(employeeIdOrEmail);
 		if (!employee) {
-			this.logger.warn(
+      this.logger.warn(
 				"Failed to initiate SMS verification: Employee not found",
 				undefined,
-				JSON.stringify({ employeeId }),
+        JSON.stringify({ employeeIdOrEmail }),
 			);
 			throw new BadRequestException("Empleado no encontrado");
 		}
@@ -427,99 +434,254 @@ export class TwoFactorAuthService {
 		// It's assumed the phone number should be validated for format (e.g., E.164)
 		// before calling this method, or SmsService should handle it.
 		// For now, directly updating employee's phone.
-		await this.employeeRepository.update(employeeId, { phone: phoneNumber });
+    await this.employeeRepository.update(employee.id, { phone: phoneNumber });
 		// Note: employeeRepository.update might not update relations or nested entities directly.
 		// If 'phone' is on the Employee entity directly, this is fine.
 
 		const otp = this.generateSixDigitCode();
 		const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
-		await this.employeeRepository.updateCredentials(employeeId, {
-			sms_otp_code: otp,
-			sms_otp_code_expires_at: expiresAt,
-			phone_number_verified: false, // Explicitly set to false until verification
-		});
+    // Guardar OTP en Redis con TTL de 10 minutos
+    const ttlSeconds = 10 * 60;
+    await this.redis.set(`otp:sms:${employee.id}`, otp, ttlSeconds);
+    await this.redis.set(`otp:sms:email:${employee.email}`, otp, ttlSeconds);
 
 		await this.smsService.sendOtp(phoneNumber, otp); // Assumes phoneNumber is E.164 formatted
-		this.logger.log(
+    this.logger.log(
 			"SMS OTP sent for phone verification",
 			undefined,
-			JSON.stringify({ employeeId, phoneNumber }),
+      JSON.stringify({ employeeId: employee.id, phoneNumber }),
 		);
 	}
 
-	async verifySmsOtpForPhoneNumber(
-		employeeId: string,
-		otp: string,
-	): Promise<boolean> {
-		this.logger.log(
+  async verifySmsOtpForPhoneNumber(
+    employeeIdOrEmail: string,
+    otp: string,
+  ): Promise<boolean> {
+    this.logger.log(
 			"Attempting to verify SMS OTP for phone number",
 			undefined,
-			JSON.stringify({ employeeId }),
+      JSON.stringify({ employeeIdOrEmail }),
 		);
-		const employee =
-			await this.employeeRepository.findByIdWithCredentials(employeeId); // Ensure this method exists and fetches credentials
+    const isUuidV4 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(
+      employeeIdOrEmail,
+    );
+    const employee = isUuidV4
+      ? await this.employeeRepository.findByIdWithCredentials(employeeIdOrEmail)
+      : await (async () => {
+          const byEmail = await this.employeeRepository.findByEmail(
+            employeeIdOrEmail,
+          );
+          return byEmail
+            ? await this.employeeRepository.findByIdWithCredentials(byEmail.id)
+            : null;
+        })();
 
 		if (!employee || !employee.credentials) {
 			this.logger.warn(
 				"SMS OTP verification failed: Employee or credentials not found",
-				undefined,
-				JSON.stringify({ employeeId }),
+			undefined,
+				JSON.stringify({ employeeId: employee.id }),
 			);
 			throw new BadRequestException("Empleado o credenciales no encontradas.");
 		}
 
-		const { sms_otp_code: storedOtp, sms_otp_code_expires_at: expiry } =
-			employee.credentials;
+    const keyById = `otp:sms:${employee.id}`;
+    const keyByEmail = `otp:sms:email:${employee.email}`;
+    const storedOtp = (await this.redis.get<string>(keyById)) || (await this.redis.get<string>(keyByEmail));
 
-		if (!storedOtp || !expiry) {
-			this.logger.warn(
-				"SMS OTP verification failed: No OTP pending or already verified",
-				undefined,
-				JSON.stringify({ employeeId }),
-			);
-			throw new BadRequestException(
-				"No hay código OTP pendiente para verificación o ya ha sido verificado.",
-			);
-		}
+    if (!storedOtp) {
+      this.logger.warn(
+        "SMS OTP verification failed: No OTP pending or already verified",
+        undefined,
+        JSON.stringify({ employeeId: employee.id }),
+      );
+      throw new BadRequestException(
+        "No hay código OTP pendiente para verificación o ya ha sido verificado.",
+      );
+    }
 
-		if (expiry < new Date()) {
-			this.logger.warn(
-				"SMS OTP verification failed: OTP has expired",
-				undefined,
-				JSON.stringify({ employeeId }),
-			);
-			// Clear the expired OTP
-			await this.employeeRepository.updateCredentials(employeeId, {
-				sms_otp_code: null,
-				sms_otp_code_expires_at: null,
-			});
-			throw new BadRequestException("El código OTP ha expirado.");
-		}
-
-		if (storedOtp !== otp) {
+    if (storedOtp !== otp) {
 			this.logger.warn(
 				"SMS OTP verification failed: Invalid OTP",
 				undefined,
-				JSON.stringify({ employeeId }),
+        JSON.stringify({ employeeId: employee.id }),
 			);
 			// Consider implementing attempt counting here to prevent brute-force attacks.
 			throw new BadRequestException("Código OTP inválido.");
 		}
 
 		// OTP is valid
-		await this.employeeRepository.updateCredentials(employeeId, {
+    await this.employeeRepository.updateCredentials(employee.id, {
 			phone_number_verified: true,
-			sms_otp_code: null,
-			sms_otp_code_expires_at: null,
 		});
-		this.logger.log(
+    await this.redis.delete(keyById, keyByEmail);
+    this.logger.log(
 			"SMS OTP for phone number verified successfully",
 			undefined,
-			JSON.stringify({ employeeId }),
+      JSON.stringify({ employeeId: employee.id }),
 		);
 		return true;
 	}
+
+  // --- Public registration (no employee required) ---
+
+  /**
+   * Inicia verificación por SMS para registro sin requerir empleado existente
+   * Guarda OTP en Redis asociado al email y al teléfono, con TTL de 10 minutos
+   */
+  async initiateSmsVerificationPublic(
+    email: string,
+    phoneNumber: string,
+  ): Promise<void> {
+    this.logger.log(
+      "Initiating PUBLIC SMS verification (registration)",
+      undefined,
+      JSON.stringify({ email, phoneNumber })
+    );
+
+    // Normalizar email en minúsculas
+    const normalizedEmail = (email || "").trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new BadRequestException("Email es requerido");
+    }
+
+    const otp = this.generateSixDigitCode();
+    const ttlSeconds = 10 * 60; // 10 minutos
+
+    // Guardar OTP pendiente por email; también guardamos el teléfono para validar luego
+    await this.redis.set(`otp:sms:pending:email:${normalizedEmail}`, otp, ttlSeconds);
+    await this.redis.set(
+      `otp:sms:pending:meta:${normalizedEmail}`,
+      JSON.stringify({ phoneNumber, createdAt: new Date().toISOString() }),
+      ttlSeconds,
+    );
+
+    await this.smsService.sendOtp(phoneNumber, otp);
+    this.logger.log(
+      "PUBLIC SMS OTP sent successfully",
+      undefined,
+      JSON.stringify({ email: normalizedEmail })
+    );
+  }
+
+  /**
+   * Verifica OTP público y marca el email (y teléfono) como verificado temporalmente en Redis
+   * Crea una marca `otp:sms:verified:email:{email}` con TTL (p.ej. 30 min) que se validará al crear cuenta
+   */
+  async verifySmsOtpPublic(email: string, otp: string): Promise<boolean> {
+    this.logger.log(
+      "Attempting PUBLIC SMS OTP verification (registration)",
+      undefined,
+      JSON.stringify({ email })
+    );
+    const normalizedEmail = (email || "").trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new BadRequestException("Email es requerido");
+    }
+
+    const pendingKey = `otp:sms:pending:email:${normalizedEmail}`;
+    const metaKey = `otp:sms:pending:meta:${normalizedEmail}`;
+    const pendingOtp = await this.redis.get<any>(pendingKey);
+    if (pendingOtp === null || pendingOtp === undefined) {
+      throw new BadRequestException("No hay OTP pendiente o ya expiró");
+    }
+    if (String(pendingOtp) !== String(otp)) {
+      throw new BadRequestException("Código OTP inválido");
+    }
+
+    const metaJson = await this.redis.get<string>(metaKey);
+    let phoneNumber: string | undefined;
+    try {
+      phoneNumber = metaJson ? (JSON.parse(metaJson).phoneNumber as string) : undefined;
+    } catch (e) {
+      // ignore parse errors
+    }
+
+    // Marcar como verificado para uso posterior en creación de cuenta (TTL 30 min)
+    const verifiedTtl = 30 * 60;
+    const verifiedPayload = JSON.stringify({
+      phoneNumber,
+      verifiedAt: new Date().toISOString(),
+    });
+    await this.redis.set(`otp:sms:verified:email:${normalizedEmail}`, verifiedPayload, verifiedTtl);
+
+    // Limpiar OTPs pendientes
+    await this.redis.delete(pendingKey, metaKey);
+
+    this.logger.log(
+      "PUBLIC SMS OTP verified successfully",
+      undefined,
+      JSON.stringify({ email: normalizedEmail })
+    );
+    return true;
+  }
+
+  /**
+   * Inicia verificación por EMAIL para registro (envía OTP al correo)
+   */
+  async initiateEmailVerificationPublic(email: string): Promise<void> {
+    const normalizedEmail = (email || "").trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new BadRequestException("Email es requerido");
+    }
+    const otp = this.generateSixDigitCode();
+    const ttlSeconds = 10 * 60;
+    await this.redis.set(`otp:email:pending:${normalizedEmail}`, otp, ttlSeconds);
+    // Enviar correo con OTP
+    try {
+      await this.emailService.send2FASetupEmail(normalizedEmail, normalizedEmail, null, otp);
+    } catch (e) {
+      // En desarrollo (o si está habilitado por config), no fallar el flujo: mantenemos el OTP y continuamos
+      const allowFallback = (this.configService.get<string>("EMAIL_OTP_ALLOW_SEND_FAILURE")
+        ?? (process.env.NODE_ENV !== "production" ? "true" : "false")) === "true";
+      if (allowFallback) {
+        this.logger.warn(
+          "Fallo el envío de email OTP, pero se permite fallback. Revisa configuración del proveedor (dominio/API key).",
+          undefined,
+          JSON.stringify({ email: normalizedEmail, error: (e as any)?.message || "unknown" })
+        );
+      } else {
+        throw e;
+      }
+    }
+    this.logger.log(
+      "PUBLIC EMAIL OTP sent successfully",
+      undefined,
+      JSON.stringify({ email: normalizedEmail })
+    );
+  }
+
+  /**
+   * Verifica OTP enviado por EMAIL y marca como verificado en Redis
+   */
+  async verifyEmailOtpPublic(email: string, otp: string): Promise<boolean> {
+    const normalizedEmail = (email || "").trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new BadRequestException("Email es requerido");
+    }
+    const key = `otp:email:pending:${normalizedEmail}`;
+    const pendingOtp = await this.redis.get<any>(key);
+    if (pendingOtp === null || pendingOtp === undefined) {
+      throw new BadRequestException("No hay OTP pendiente o ya expiró");
+    }
+    if (String(pendingOtp) !== String(otp)) {
+      throw new BadRequestException("Código OTP inválido");
+    }
+    const verifiedTtl = 30 * 60;
+    await this.redis.set(
+      `otp:email:verified:${normalizedEmail}`,
+      JSON.stringify({ verifiedAt: new Date().toISOString() }),
+      verifiedTtl,
+    );
+    await this.redis.delete(key);
+    this.logger.log(
+      "PUBLIC EMAIL OTP verified successfully",
+      undefined,
+      JSON.stringify({ email: normalizedEmail })
+    );
+    return true;
+  }
 
 	async enableSmsTwoFactor(employeeId: string): Promise<boolean> {
 		this.logger.log(

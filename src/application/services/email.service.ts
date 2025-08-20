@@ -29,42 +29,49 @@ export class EmailService {
 		this.logger.setContext("EmailService"); // Set context
 	}
 
-	private async getEmailHtml(
-		templateName: string,
-		data: Record<string, any>,
-	): Promise<string> {
-		try {
-			const templatePath = path.join(
-				__dirname,
-				"..",
-				"..",
-				"templates",
-				"email",
-				`${templateName}.html`,
-			);
-			// __dirname is 'src/application/services' when running, so '..' '..' gets to 'src/'
-			// For a more robust path, consider process.cwd() + '/src/templates/email/...' if __dirname is unreliable
-			// const templatePath = path.resolve(process.cwd(), 'src', 'templates', 'email', `${templateName}.html`);
+  private async getEmailHtml(
+    templateName: string,
+    data: Record<string, any>,
+  ): Promise<string> {
+    const candidates = [
+      // Root templates path (recommended): backend/templates/email/*.html
+      path.resolve(process.cwd(), "templates", "email", `${templateName}.html`),
+      // Legacy: src/templates/email/*.html (for compatibility with old builds)
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "templates",
+        "email",
+        `${templateName}.html`,
+      ),
+    ];
 
-			let html = await fs.readFile(templatePath, "utf-8");
-			for (const key in data) {
-				const regex = new RegExp(`{{${key}}}`, "g");
-				html = html.replace(regex, String(data[key])); // Ensure data[key] is stringified
-			}
-			return html;
-		} catch (error) {
-			this.logger.error(
-				`Failed to read or process email template: ${templateName}`,
-				undefined,
-				error.stack,
-				{ originalError: error.message, templateName },
-			);
-			// Depending on policy, could throw or return a fallback/error HTML
-			throw new InternalServerErrorException(
-				`Could not load email template: ${templateName}`,
-			);
-		}
-	}
+    let lastError: any = null;
+    for (const candidate of candidates) {
+      try {
+        let html = await fs.readFile(candidate, "utf-8");
+        for (const key in data) {
+          const regex = new RegExp(`{{${key}}}`, "g");
+          html = html.replace(regex, String(data[key]));
+        }
+        return html;
+      } catch (e) {
+        lastError = e;
+        continue;
+      }
+    }
+
+    this.logger.error(
+      `Failed to read or process email template: ${templateName}`,
+      undefined,
+      lastError?.stack,
+      { originalError: lastError?.message, templateName },
+    );
+    throw new InternalServerErrorException(
+      `Could not load email template: ${templateName}`,
+    );
+  }
 
 	async sendSupplierCreationEmail(
 		supplier: Supplier,
@@ -412,21 +419,49 @@ export class EmailService {
 	) {
 		const templateName = "2fa-setup";
 		try {
+			const baseUrl = this.configService.get<string>(
+				"FRONTEND_URL",
+				"http://localhost:3000",
+			);
+			const brandName = this.configService.get<string>("BRAND_NAME", "Novack");
+			const brandDomain = this.configService.get<string>(
+				"BRAND_DOMAIN",
+				"novack.com",
+			);
+			const logoPath = this.configService.get<string>(
+				"BRAND_LOGO_PATH",
+				"/Imagotipo.svg",
+			);
+			const logoUrl = this.configService.get<string>(
+				"BRAND_LOGO_URL",
+				`${baseUrl}${logoPath}`,
+			);
+			const pricingUrl = `${baseUrl}/pricing`;
+			const featuresUrl = `${baseUrl}/#features`;
+			const startUrl = `${baseUrl}/register`;
+
 			const html = await this.getEmailHtml(templateName, {
 				employeeName,
 				verificationCode: code,
 				year: new Date().getFullYear(),
+				brandName,
+				brandDomain,
+				logoUrl,
+				pricingUrl,
+				featuresUrl,
+				startUrl,
 			});
 
 			const fromAddress = this.configService.get<string>(
 				"EMAIL_FROM_SECURITY",
-				"security@spcedes.com",
+				"security@novack.com",
 			);
 
-			const { data, error } = await this.resend.emails.send({
+            const { data, error } = await this.resend.emails.send({
 				from: fromAddress,
 				to: [to],
-				subject: "Configuración de Autenticación de Dos Factores - SP-CEDES",
+				subject: "Your Novack verification code",
+				replyTo: "no-reply@novack.com",
 				html,
 			});
 

@@ -30,6 +30,7 @@ import {
 
 // Other necessary modules
 import { TokenModule } from "./token.module"; // Retained
+import { RedisDatabaseModule } from "../../infrastructure/database/redis/redis.database.module";
 import { FileStorageModule } from "./file-storage.module"; // Retained for controller
 // Assuming SupplierModule exists and provides ISupplierRepository
 import { SupplierModule } from "./supplier.module";
@@ -44,6 +45,7 @@ import { SupplierModule } from "./supplier.module";
 		TokenModule,
 		FileStorageModule,
 		forwardRef(() => SupplierModule), // Usando forwardRef para resolver la dependencia circular
+		RedisDatabaseModule,
 	],
 	controllers: [EmployeeController],
 	providers: [

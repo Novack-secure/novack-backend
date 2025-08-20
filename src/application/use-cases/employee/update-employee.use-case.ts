@@ -8,7 +8,7 @@ import { Employee } from "src/domain/entities/employee.entity";
 import { IEmployeeRepository } from "src/domain/repositories/employee.repository.interface";
 import { UpdateEmployeeDto } from "src/application/dtos/employee/update-employee.dto";
 import { StructuredLoggerService } from "src/infrastructure/logging/structured-logger.service";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 
 @Injectable()
 export class UpdateEmployeeUseCase {

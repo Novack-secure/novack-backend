@@ -7,7 +7,7 @@ import {
 	EmployeeCredentials,
 	RefreshToken,
 } from "../../domain/entities";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { TokenService } from "./token.service";
 import { Request } from "express";
 import { StructuredLoggerService } from "../../infrastructure/logging/structured-logger.service";

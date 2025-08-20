@@ -10,6 +10,7 @@ import { AuthModule } from "./auth.module";
 import { EmployeeRepository } from "../../infrastructure/repositories/employee.repository";
 import { TokenModule } from "./token.module";
 import { SmsModule } from "./sms.module";
+import { RedisDatabaseModule } from "../../infrastructure/database/redis/redis.database.module";
 
 @Module({
 	imports: [
@@ -18,7 +19,8 @@ import { SmsModule } from "./sms.module";
 		JwtConfigModule,
 		forwardRef(() => AuthModule),
 		TokenModule,
-		SmsModule,
+    SmsModule,
+    RedisDatabaseModule,
 	],
 	controllers: [TwoFactorAuthController],
 	providers: [
