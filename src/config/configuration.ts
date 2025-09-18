@@ -27,7 +27,7 @@ export default registerAs("config", () => ({
 		secret: process.env.COOKIE_SECRET,
 	},
   deepsee: {
-    apiUrl: process.env.DEEPSEE_API_URL,
-    apiKey: process.env.DEEPSEE_API_KEY,
+    apiUrl: process.env.DEEPSEEK_API_URL,
+    apiKey: process.env.DEEPSEEK_API_KEY,
   },
 }));
