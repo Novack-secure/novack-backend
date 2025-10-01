@@ -38,4 +38,4 @@ ENV PORT=${PORT}
 EXPOSE ${PORT}
 
 # Start the application
-CMD ["node", "dist/src/main.js"]
+CMD ["pnpm", "start"]

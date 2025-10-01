@@ -45,20 +45,20 @@ export class AuthenticateEmployeeUseCase {
 		req: Request,
 	): Promise<AuthenticationResult> {
 		try {
-			// Delegate to AuthService.login, which now uses TokenService
-			const authResult = await this.authService.login(
+			// Use simplified login that only verifies email and password exist
+			const authResult = await this.authService.simpleLogin(
 				credentials.email,
 				credentials.password,
 				req,
 			);
 
-			// The authResult from authService.login now includes the full token set and employee
+			// The authResult from authService.simpleLogin now includes the full token set and employee
 			// Ensure the employee object is shaped as needed (e.g., omitting sensitive fields)
 			// AuthService already returns 'employee' which might be the full entity.
 			// Let's assume it's fine for now, or a DTO mapping would occur here or in AuthService.
 			return authResult as AuthenticationResult;
 		} catch (error) {
-			// The AuthService.login method already throws UnauthorizedException or other HttpExceptions
+			// The AuthService.simpleLogin method already throws UnauthorizedException or other HttpExceptions
 			// Re-throwing them is standard.
 			throw error;
 		}

@@ -202,6 +202,77 @@ export class AuthService {
 		};
 	}
 
+	/**
+	 * Simplified login method that only verifies email and password exist
+	 * without additional validations like email verification, 2FA, or account lockout
+	 */
+	async simpleLogin(email: string, password: string, request?: Request) {
+		// Find employee with credentials
+		const employee = await this.employeeRepository.findOne({
+			where: { email },
+			relations: ["credentials", "supplier"],
+		});
+
+		if (!employee || !employee.credentials) {
+			if (this.logger) {
+				this.logger.warn(
+					"Simple login failed: User not found or no credentials",
+					undefined,
+					JSON.stringify({ email }),
+				);
+			}
+			throw new UnauthorizedException("Credenciales inválidas");
+		}
+
+		// Verify password
+		const isPasswordValid = await bcrypt.compare(
+			password,
+			employee.credentials.password_hash,
+		);
+
+		if (!isPasswordValid) {
+			if (this.logger) {
+				this.logger.warn(
+					"Simple login failed: Invalid password",
+					undefined,
+					JSON.stringify({ email }),
+				);
+			}
+			throw new UnauthorizedException("Credenciales inválidas");
+		}
+
+		// Update last login
+		employee.credentials.last_login = new Date();
+		await this.employeeAuthRepository.save(employee.credentials);
+
+		// Generate tokens
+		const tokens = await this.tokenService.generateTokens(employee, request);
+
+		if (this.logger) {
+			this.logger.log(
+				"Simple login successful",
+				undefined,
+				JSON.stringify({
+					userId: employee.id,
+					email: employee.email,
+					supplierId: employee.supplier?.id,
+				}),
+			);
+		}
+
+		return {
+			...tokens,
+			employee: {
+				id: employee.id,
+				first_name: employee.first_name,
+				last_name: employee.last_name,
+				email: employee.email,
+				is_creator: employee.is_creator,
+				supplier: employee.supplier,
+			},
+		};
+	}
+
 	async refreshToken(token: string, request?: Request) {
 		const result = await this.tokenService.refreshAccessToken(token, request);
 		if (this.logger) {
