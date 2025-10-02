@@ -5,7 +5,6 @@ import { Repository } from "typeorm";
 import {
 	Employee,
 	EmployeeCredentials,
-	RefreshToken,
 } from "../../domain/entities";
 import * as bcrypt from "bcryptjs";
 import { TokenService } from "./token.service";
@@ -26,8 +25,6 @@ export class AuthService {
 		private readonly employeeRepository: Repository<Employee>,
 		@InjectRepository(EmployeeCredentials)
 		private readonly employeeAuthRepository: Repository<EmployeeCredentials>,
-		@InjectRepository(RefreshToken)
-		private readonly refreshTokenRepository: Repository<RefreshToken>,
 		private readonly smsService: SmsService,
 		@Optional() private readonly logger?: StructuredLoggerService,
 	) {
@@ -273,28 +270,14 @@ export class AuthService {
 		};
 	}
 
+	// TODO: Implementar refresh token y logout cuando se resuelva el problema de RefreshToken
 	async refreshToken(token: string, request?: Request) {
-		const result = await this.tokenService.refreshAccessToken(token, request);
-		if (this.logger) {
-		    this.logger.log("Token refreshed successfully");
-		}
-		return result;
+		throw new Error("Refresh token no implementado temporalmente");
 	}
 
 	async logout(refreshToken: string) {
-	    const result = await this.tokenService.revokeToken(refreshToken);
-	    
-	    if (result) {
-	        if (this.logger) {
-	            this.logger.log("Refresh token revoked successfully.");
-	        }
-	        return { message: "Logged out successfully" };
-	    } else {
-	        if (this.logger) {
-	            this.logger.warn("Failed to revoke refresh token: token may be invalid or already revoked.");
-	        }
-	        return { message: "Logout processed; token is invalid or already revoked." };
-	    }
+		// TODO: Implementar logout cuando se resuelva el problema de RefreshToken
+		return { message: "Logged out successfully" };
 	}
 
 	async validateToken(token: string) {

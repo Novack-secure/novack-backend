@@ -13,6 +13,7 @@ import {
 	CardLocation,
 	Appointment,
 	SupplierSubscription,
+	RefreshToken,
 } from '../../../domain/entities';
 import { EmployeeCredentials } from '../../../domain/entities/employee-credentials.entity';
 import { PostgresqlDatabaseService } from './postgresql.database.service';
@@ -34,6 +35,7 @@ const entities = [
   AuditLog,
   Appointment,
   SupplierSubscription,
+  RefreshToken,
 ];
 
 /**

@@ -5,7 +5,6 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { PassportModule } from "@nestjs/passport";
 import { Employee } from "../../domain/entities";
 import { EmployeeCredentials } from "../../domain/entities/employee-credentials.entity";
-import { RefreshToken } from "../../domain/entities";
 import { AuthController } from "../../interface/controllers/auth.controller";
 import { JwtStrategy } from "../strategies/jwt.strategy";
 import { AuthenticateEmployeeUseCase } from "../use-cases/auth/authenticate-employee.use-case";
@@ -18,14 +17,7 @@ import { SmsService } from "../services/sms.service";
 @Module({
 	imports: [
 		PassportModule,
-		JwtModule.registerAsync({
-			inject: [ConfigService],
-			useFactory: (configService: ConfigService) => ({
-				secret: configService.get<string>("JWT_SECRET", "supersecret"),
-				signOptions: { expiresIn: "1d" },
-			}),
-		}),
-		TypeOrmModule.forFeature([Employee, EmployeeCredentials, RefreshToken]),
+		TypeOrmModule.forFeature([Employee, EmployeeCredentials]),
 		TokenModule,
 		EmployeeModule,
 	],
@@ -41,6 +33,6 @@ import { SmsService } from "../services/sms.service";
 			useClass: EmployeeRepository,
 		},
 	],
-	exports: [JwtStrategy, JwtModule, AuthService],
+	exports: [JwtStrategy, AuthService],
 })
 export class AuthModule {}

@@ -24,6 +24,7 @@ import {
   CreateEmployeeDto,
   UpdateEmployeeDto,
 } from '../../application/dtos/employee';
+import { Public } from '../../application/decorators/public.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { FileStorageService } from '../../application/services/file-storage.service';
 import { ImageProcessingPipe } from '../../application/pipes/image-processing.pipe';
@@ -86,6 +87,61 @@ export class EmployeeController {
   create(@Body() createEmployeeDto: CreateEmployeeDto) {
     return this.employeeService.create(createEmployeeDto);
   }
+
+  @Post('public/register')
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Registro público de empleado con verificación OTP',
+    description: `Registra un nuevo empleado después de verificar OTP por SMS o email.
+    - Valida que el email tenga OTP verificado en Redis
+    - Valida que el email sea único
+    - Hashea la contraseña automáticamente
+    - Marca el email como verificado`
+  })
+  @ApiBody({ 
+    schema: {
+      type: 'object',
+      properties: {
+        first_name: { type: 'string', example: 'Juan' },
+        last_name: { type: 'string', example: 'Pérez' },
+        email: { type: 'string', format: 'email', example: 'juan@empresa.com' },
+        password: { type: 'string', example: 'password123' },
+        supplier_id: { type: 'string', format: 'uuid', example: '123e4567-e89b-12d3-a456-426614174000' },
+        is_creator: { type: 'boolean', example: false },
+        phone: { type: 'string', example: '+50688888888' },
+        position: { type: 'string', example: 'Developer' },
+        department: { type: 'string', example: 'IT' }
+      },
+      required: ['first_name', 'last_name', 'email', 'password', 'supplier_id', 'phone']
+    }
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'El empleado ha sido registrado exitosamente.',
+    schema: {
+      example: {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        first_name: 'Juan',
+        last_name: 'Pérez',
+        email: 'juan@empresa.com',
+        is_creator: false,
+        supplier_id: '987fcdeb-51a2-43f7-9abc-def012345678'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 400,
+    description: `Datos de entrada inválidos. Posibles errores:
+    - Email no verificado por OTP
+    - Email ya registrado
+    - Contraseña muy corta
+    - Proveedor no existe`
+  })
+  async publicRegister(@Body() createEmployeeDto: CreateEmployeeDto) {
+    return this.employeeService.createPublic(createEmployeeDto);
+  }
+
 
   @Get()
   @HttpCode(HttpStatus.OK)
