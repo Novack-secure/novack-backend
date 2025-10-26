@@ -74,4 +74,7 @@ export class EmployeeCredentials {
 
 	@Column({ nullable: true })
 	locked_until?: Date;
+
+	@Column({ nullable: true })
+	google_id?: string;
 }

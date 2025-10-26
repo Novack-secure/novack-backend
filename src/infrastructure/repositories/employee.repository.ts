@@ -110,10 +110,13 @@ export class EmployeeRepository implements IEmployeeRepository {
 	}
 
 	async findBySupplier(supplierId: string): Promise<Employee[]> {
-		return this.employeeEntityRepository.find({
+		console.log('🔍 Repository findBySupplier called with supplierId:', supplierId);
+		const employees = await this.employeeEntityRepository.find({
 			where: { supplier: { id: supplierId } },
 			relations: ["supplier", "credentials"],
 		});
+		console.log('🔍 Repository found employees:', employees.length);
+		return employees;
 	}
 
 	// Métodos específicos para credenciales

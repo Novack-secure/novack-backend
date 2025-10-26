@@ -40,6 +40,7 @@ export class WsJwtGuard implements CanActivate {
 			if (userType === "employee") {
 				user = await this.employeeRepository.findOne({
 					where: { id: payload.sub },
+					relations: ["supplier"],
 				});
 				if (!user) {
 					throw new WsException("Empleado no encontrado");
@@ -47,6 +48,7 @@ export class WsJwtGuard implements CanActivate {
 			} else {
 				user = await this.visitorRepository.findOne({
 					where: { id: payload.sub },
+					relations: ["supplier"],
 				});
 				if (!user) {
 					throw new WsException("Visitante no encontrado");

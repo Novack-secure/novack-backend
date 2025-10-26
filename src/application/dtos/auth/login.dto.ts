@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from "class-validator";
+import { IsEmail, IsString, MinLength, IsNotEmpty, Length } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class LoginDto {
@@ -19,16 +19,15 @@ export class LoginDto {
 }
 
 // New DTO for SMS OTP verification during login
-import { IsNotEmpty, IsUUID, Length } from "class-validator";
 
 export class LoginSmsVerifyDto {
 	@ApiProperty({
-		description: "User ID of the user attempting to verify SMS OTP",
-		example: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+		description: "Email of the user attempting to verify SMS OTP",
+		example: "empleado@empresa.com",
 	})
-	@IsNotEmpty({ message: "User ID cannot be empty" })
-	@IsUUID("4", { message: "User ID must be a valid UUID" })
-	userId: string;
+	@IsNotEmpty({ message: "Email cannot be empty" })
+	@IsEmail({}, { message: "Email must be valid" })
+	email: string;
 
 	@ApiProperty({
 		example: "123456",
@@ -37,5 +36,5 @@ export class LoginSmsVerifyDto {
 	@IsNotEmpty({ message: "OTP code cannot be empty" })
 	@IsString()
 	@Length(6, 6, { message: "OTP code must be 6 digits" })
-	otp: string;
+	sms_otp_code: string;
 }

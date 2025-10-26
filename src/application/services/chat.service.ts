@@ -284,52 +284,85 @@ export class ChatService {
 		userId: string,
 		userType: "employee" | "visitor",
 	): Promise<ChatRoom[]> {
-		if (userType === "employee") {
-			// Verificar si el empleado existe
-			const employee = await this.employeeRepository.findOne({
-				where: { id: userId },
-				relations: ["supplier"],
-			});
+		console.log("✅ ChatService.getUserRooms - userId:", userId, "userType:", userType);
 
-			if (!employee) {
-				throw new BadRequestException("El empleado no existe");
-			}
-
-			// Buscar salas donde el empleado es miembro directamente
-			const directRooms = await this.chatRoomRepository
-				.createQueryBuilder("room")
-				.leftJoinAndSelect("room.employees", "employee")
-				.leftJoinAndSelect("room.visitors", "visitor")
-				.where("employee.id = :userId", { userId })
-				.getMany();
-
-			// Si el empleado tiene proveedor, también buscar la sala de grupo del proveedor
-			if (employee.supplier) {
-				const supplierRoom = await this.chatRoomRepository.findOne({
-					where: {
-						supplier_id: employee.supplier.id,
-						type: ChatRoomType.SUPPLIER_GROUP,
-					},
-					relations: ["employees", "visitors"],
+		try {
+			if (userType === "employee") {
+				// Verificar si el empleado existe
+				const employee = await this.employeeRepository.findOne({
+					where: { id: userId },
+					relations: ["supplier"],
 				});
 
-				if (
-					supplierRoom &&
-					!directRooms.some((room) => room.id === supplierRoom.id)
-				) {
-					directRooms.push(supplierRoom);
-				}
-			}
+				console.log("✅ ChatService.getUserRooms - Employee found:", !!employee);
+				console.log("✅ ChatService.getUserRooms - Employee supplier:", employee?.supplier?.id);
 
-			return directRooms;
-		} else {
-			// Para visitantes, solo buscar salas donde son miembros directamente
-			return this.chatRoomRepository
-				.createQueryBuilder("room")
-				.leftJoinAndSelect("room.employees", "employee")
-				.leftJoinAndSelect("room.visitors", "visitor")
-				.where("visitor.id = :userId", { userId })
-				.getMany();
+				if (!employee) {
+					throw new BadRequestException("El empleado no existe");
+				}
+
+				// Buscar salas donde el empleado es miembro directamente
+				const directRooms = await this.chatRoomRepository
+					.createQueryBuilder("room")
+					.leftJoinAndSelect("room.employees", "employee")
+					.leftJoinAndSelect("room.visitors", "visitor")
+					.where("employee.id = :userId", { userId })
+					.andWhere("room.is_active = :isActive", { isActive: true })
+					.orderBy("room.updated_at", "DESC")
+					.getMany();
+
+				console.log("✅ ChatService.getUserRooms - Direct rooms found:", directRooms.length);
+
+				// Si el empleado tiene proveedor, también buscar la sala de grupo del proveedor
+				if (employee.supplier) {
+					console.log("✅ ChatService.getUserRooms - Looking for supplier room for:", employee.supplier.id);
+
+					const supplierRoom = await this.chatRoomRepository.findOne({
+						where: {
+							supplier_id: employee.supplier.id,
+							type: ChatRoomType.SUPPLIER_GROUP,
+							is_active: true,
+						},
+						relations: ["employees", "visitors"],
+					});
+
+					console.log("✅ ChatService.getUserRooms - Supplier room found:", !!supplierRoom);
+					if (supplierRoom) {
+						console.log("✅ ChatService.getUserRooms - Supplier room details:", {
+							id: supplierRoom.id,
+							name: supplierRoom.name,
+							type: supplierRoom.type
+						});
+					}
+
+					if (
+						supplierRoom &&
+						!directRooms.some((room) => room.id === supplierRoom.id)
+					) {
+						directRooms.push(supplierRoom);
+						console.log("✅ ChatService.getUserRooms - Added supplier room to direct rooms");
+					}
+				}
+
+				console.log("✅ ChatService.getUserRooms - Total rooms to return:", directRooms.length);
+				return directRooms;
+			} else {
+				// Para visitantes, solo buscar salas donde son miembros directamente
+				const rooms = await this.chatRoomRepository
+					.createQueryBuilder("room")
+					.leftJoinAndSelect("room.employees", "employee")
+					.leftJoinAndSelect("room.visitors", "visitor")
+					.where("visitor.id = :userId", { userId })
+					.andWhere("room.is_active = :isActive", { isActive: true })
+					.orderBy("room.updated_at", "DESC")
+					.getMany();
+
+				console.log("✅ ChatService.getUserRooms - Visitor rooms found:", rooms.length);
+				return rooms;
+			}
+		} catch (error) {
+			console.error("❌ ChatService.getUserRooms - Error:", error);
+			throw error;
 		}
 	}
 
@@ -439,67 +472,78 @@ export class ChatService {
 		user2Id: string,
 		user2Type: "employee" | "visitor",
 	): Promise<ChatRoom | null> {
-		let query = this.chatRoomRepository
-			.createQueryBuilder("room")
-			.leftJoinAndSelect("room.employees", "employee")
-			.leftJoinAndSelect("room.visitors", "visitor");
-
 		// Determinar el tipo de sala
 		if (user1Type === "employee" && user2Type === "employee") {
-			query = query
+			// Buscar salas con exactamente estos dos empleados
+			const rooms = await this.chatRoomRepository
+				.createQueryBuilder("room")
+				.leftJoinAndSelect("room.employees", "employee")
+				.leftJoinAndSelect("room.visitors", "visitor")
 				.where("room.type = :roomType", {
 					roomType: ChatRoomType.EMPLOYEE_TO_EMPLOYEE,
 				})
-				.andWhere("(employee.id = :user1Id OR employee.id = :user2Id)", {
-					user1Id,
-					user2Id,
-				})
-				.groupBy("room.id")
-				.having("COUNT(DISTINCT employee.id) = 2");
+				.getMany();
+
+			// Filtrar manualmente para encontrar la sala con exactamente estos dos usuarios
+			for (const room of rooms) {
+				if (
+					room.employees.length === 2 &&
+					room.employees.some((emp) => emp.id === user1Id) &&
+					room.employees.some((emp) => emp.id === user2Id)
+				) {
+					return room;
+				}
+			}
+			return null;
 		} else if (user1Type === "visitor" && user2Type === "visitor") {
-			query = query
+			// Buscar salas con exactamente estos dos visitantes
+			const rooms = await this.chatRoomRepository
+				.createQueryBuilder("room")
+				.leftJoinAndSelect("room.employees", "employee")
+				.leftJoinAndSelect("room.visitors", "visitor")
 				.where("room.type = :roomType", {
 					roomType: ChatRoomType.EMPLOYEE_TO_VISITOR,
 				})
-				.andWhere("(visitor.id = :user1Id OR visitor.id = :user2Id)", {
-					user1Id,
-					user2Id,
-				})
-				.groupBy("room.id")
-				.having("COUNT(DISTINCT visitor.id) = 2");
+				.getMany();
+
+			// Filtrar manualmente para encontrar la sala con exactamente estos dos usuarios
+			for (const room of rooms) {
+				if (
+					room.visitors.length === 2 &&
+					room.visitors.some((vis) => vis.id === user1Id) &&
+					room.visitors.some((vis) => vis.id === user2Id)
+				) {
+					return room;
+				}
+			}
+			return null;
 		} else {
 			// Caso de empleado-visitante
 			const employeeId = user1Type === "employee" ? user1Id : user2Id;
 			const visitorId = user1Type === "visitor" ? user1Id : user2Id;
 
-			query = query
+			const rooms = await this.chatRoomRepository
+				.createQueryBuilder("room")
+				.leftJoinAndSelect("room.employees", "employee")
+				.leftJoinAndSelect("room.visitors", "visitor")
 				.where("room.type = :roomType", {
 					roomType: ChatRoomType.EMPLOYEE_TO_VISITOR,
 				})
 				.andWhere("employee.id = :employeeId", { employeeId })
-				.andWhere("visitor.id = :visitorId", { visitorId });
-		}
+				.andWhere("visitor.id = :visitorId", { visitorId })
+				.getMany();
 
-		const rooms = await query.getMany();
-
-		// Verificar que solo haya estos dos usuarios en la sala
-		for (const room of rooms) {
-			if (
-				(user1Type === "employee" &&
-					user2Type === "employee" &&
-					room.employees.length === 2) ||
-				(user1Type === "visitor" &&
-					user2Type === "visitor" &&
-					room.visitors.length === 2) ||
-				(user1Type !== user2Type &&
+			// Verificar que solo haya estos dos usuarios en la sala
+			for (const room of rooms) {
+				if (
 					room.employees.length === 1 &&
-					room.visitors.length === 1)
-			) {
-				return room;
+					room.visitors.length === 1
+				) {
+					return room;
+				}
 			}
+			return null;
 		}
-
-		return null;
 	}
 
 	// Método auxiliar para generar un nombre para una sala de chat privada
@@ -509,12 +553,36 @@ export class ChatService {
 		user1Type: "employee" | "visitor",
 		user2Type: "employee" | "visitor",
 	): string {
-		const user1Name =
-			user1.name ||
-			(user1Type === "employee" ? user1.employee_name : "visitor");
-		const user2Name =
-			user2.name ||
-			(user2Type === "employee" ? user2.employee_name : "visitor");
-		return `Chat: ${user1Name} - ${user2Name}`;
+		let user1Name = "Usuario Desconocido";
+		let user2Name = "Usuario Desconocido";
+
+		console.log("🔍 generatePrivateRoomName - user1Type:", user1Type, "user1:", JSON.stringify(user1));
+		console.log("🔍 generatePrivateRoomName - user2Type:", user2Type, "user2:", JSON.stringify(user2));
+
+		if (user1Type === "employee") {
+			user1Name = user1?.first_name && user1?.last_name
+				? `${user1.first_name} ${user1.last_name}`.trim()
+				: user1?.email || `Usuario ${user1?.id?.slice(0, 8) || 'Desconocido'}`;
+		} else if (user1?.name) {
+			user1Name = user1.name;
+		} else if (user1?.email) {
+			user1Name = user1.email;
+		}
+
+		if (user2Type === "employee") {
+			user2Name = user2?.first_name && user2?.last_name
+				? `${user2.first_name} ${user2.last_name}`.trim()
+				: user2?.email || `Usuario ${user2?.id?.slice(0, 8) || 'Desconocido'}`;
+		} else if (user2?.name) {
+			user2Name = user2.name;
+		} else if (user2?.email) {
+			user2Name = user2.email;
+		}
+
+		// Para mejorar la visual, usar un nombre más descriptivo
+		const roomName = `Chat privado: ${user1Name} - ${user2Name}`;
+		console.log("🔍 generatePrivateRoomName - final roomName:", roomName);
+
+		return roomName;
 	}
 }

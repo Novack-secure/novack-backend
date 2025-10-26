@@ -22,46 +22,53 @@ interface UserSocket extends Socket {
 @WebSocketGateway({
 	cors: {
 		origin: "*",
+		credentials: true,
 	},
 	namespace: "chat",
+	transports: ["websocket", "polling"],
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	@WebSocketServer()
 	server: Server;
 
 	// Mapeo de usuarios conectados a sus sockets
-    private connectedClients = new Map<string, string[]>();
+	private connectedClients = new Map<string, string[]>();
 
-    constructor(
-        private readonly chatService: ChatService,
-        private readonly supplierBotService: SupplierBotService,
-    ) {}
+	constructor(
+		private readonly chatService: ChatService,
+		private readonly supplierBotService: SupplierBotService,
+	) {}
 
 	async handleConnection(client: UserSocket) {
 		try {
-			// Autenticación manejada por el guard WsJwtGuard
-			console.log(`Cliente conectado: ${client.id}`);
+			console.log(`🔌 Cliente intentando conectar: ${client.id}`);
+			// La autenticación se manejará en cada evento con el guard
 		} catch (e) {
+			console.error("❌ Error en handleConnection:", e);
 			client.disconnect();
 		}
 	}
 
 	handleDisconnect(client: UserSocket) {
-		// Eliminar cliente de la lista de conexiones
-		if (client.user) {
-			const userId = client.user.id;
-			const userType = client.user.userType;
-			const clientId = client.id;
+		try {
+			// Eliminar cliente de la lista de conexiones
+			if (client.user) {
+				const userId = client.user.id;
+				const userType = client.user.userType;
+				const clientId = client.id;
 
-			const clientKey = `${userType}:${userId}`;
-			const clientSockets = this.connectedClients.get(clientKey) || [];
+				const clientKey = `${userType}:${userId}`;
+				const clientSockets = this.connectedClients.get(clientKey) || [];
 
-			this.connectedClients.set(
-				clientKey,
-				clientSockets.filter((id) => id !== clientId),
-			);
+				this.connectedClients.set(
+					clientKey,
+					clientSockets.filter((id) => id !== clientId),
+				);
 
-			console.log(`Cliente desconectado: ${client.id}`);
+				console.log(`🔌 Cliente desconectado: ${client.id}`);
+			}
+		} catch (e) {
+			console.error("❌ Error en handleDisconnect:", e);
 		}
 	}
 
@@ -71,27 +78,101 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@ConnectedSocket() client: UserSocket,
 		@WsAuthUser() user: any,
 	) {
-		const { id, userType } = user;
-		const clientKey = `${userType}:${id}`;
+		try {
+			const { id, userType } = user;
+			const clientKey = `${userType}:${id}`;
 
-		// Añadir socket a la lista de sockets del usuario
-		const clientSockets = this.connectedClients.get(clientKey) || [];
-		clientSockets.push(client.id);
-		this.connectedClients.set(clientKey, clientSockets);
+			console.log("✅ registerUser - userId:", id, "userType:", userType);
+			console.log("✅ registerUser - user supplier:", user.supplier?.id);
 
-		client.user = user;
+			// Añadir socket a la lista de sockets del usuario
+			const clientSockets = this.connectedClients.get(clientKey) || [];
+			if (!clientSockets.includes(client.id)) {
+				clientSockets.push(client.id);
+			}
+			this.connectedClients.set(clientKey, clientSockets);
 
-		// Subscribir al cliente a sus salas
-		const rooms = await this.chatService.getUserRooms(id, userType);
-		rooms.forEach((room) => {
-			client.join(`room:${room.id}`);
-		});
+			// Guardar usuario en el socket
+			client.user = user;
 
-		return {
-			status: "success",
-			userId: id,
-			userType,
-		};
+			// Crear sala de grupo del proveedor si no existe
+			let supplierRoom = null;
+			if (userType === "employee" && user.supplier?.id) {
+				try {
+					console.log("✅ registerUser - Creando/verificando sala de grupo del proveedor...");
+					supplierRoom = await this.chatService.createSupplierGroupRoom(user.supplier.id);
+					console.log("✅ registerUser - Sala de grupo creada/verificada:", supplierRoom.id);
+				} catch (error) {
+					console.error("❌ Error al crear sala de grupo:", error);
+				}
+			}
+
+			// Obtener todas las salas del usuario
+			console.log("✅ registerUser - Obteniendo salas del usuario...");
+			const rooms = await this.chatService.getUserRooms(id, userType);
+			console.log("✅ registerUser - Salas encontradas:", rooms.length);
+
+			// Subscribir al cliente a sus salas
+			for (const room of rooms) {
+				const roomKey = `room:${room.id}`;
+				client.join(roomKey);
+				console.log("✅ registerUser - Cliente unido a sala:", room.name, `(${roomKey})`);
+			}
+
+			// Retornar respuesta de éxito
+			return {
+				status: "success",
+				userId: id,
+				userType,
+				roomsCount: rooms.length,
+			};
+		} catch (error) {
+			console.error("❌ Error en registerUser:", error);
+			return {
+				status: "error",
+				message: error.message || "Error al registrar usuario",
+			};
+		}
+	}
+
+	@UseGuards(WsJwtGuard)
+	@SubscribeMessage("getUserRooms")
+	async getUserRooms(
+		@ConnectedSocket() client: UserSocket,
+		@WsAuthUser() user: any,
+	) {
+		try {
+			const { id, userType } = user;
+			console.log("✅ getUserRooms - userId:", id, "userType:", userType);
+
+			// Obtener salas del usuario
+			const rooms = await this.chatService.getUserRooms(id, userType);
+			console.log("✅ getUserRooms - Salas encontradas:", rooms.length);
+
+			// Mapear salas al formato esperado por el frontend
+			const mappedRooms = rooms.map((room) => ({
+				id: room.id,
+				name: room.name,
+				type: room.type,
+				supplier_id: room.supplier_id,
+				is_active: room.is_active,
+				created_at: room.created_at,
+				updated_at: room.updated_at,
+				employees: room.employees || [],
+				visitors: room.visitors || [],
+			}));
+
+			return {
+				status: "success",
+				rooms: mappedRooms,
+			};
+		} catch (error) {
+			console.error("❌ Error en getUserRooms:", error);
+			return {
+				status: "error",
+				message: error.message || "Error al obtener salas",
+			};
+		}
 	}
 
 	@UseGuards(WsJwtGuard)
@@ -101,24 +182,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@MessageBody() data: { roomId: string },
 		@WsAuthUser() user: any,
 	) {
-		const { roomId } = data;
-		const { id, userType } = user;
-
 		try {
+			const { roomId } = data;
+			const { id, userType } = user;
+
+			console.log("✅ joinRoom - userId:", id, "roomId:", roomId);
+
 			// Verificar acceso a la sala
 			await this.chatService.getRoomMessages(roomId, id, userType);
 
 			// Unir al socket a la sala
-			client.join(`room:${roomId}`);
+			const roomKey = `room:${roomId}`;
+			client.join(roomKey);
+			console.log("✅ joinRoom - Cliente unido a sala:", roomKey);
 
 			return {
 				status: "success",
 				roomId,
 			};
-		} catch (e) {
+		} catch (error) {
+			console.error("❌ Error en joinRoom:", error);
 			return {
 				status: "error",
-				message: e.message,
+				message: error.message || "Error al unirse a la sala",
 			};
 		}
 	}
@@ -129,15 +215,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@ConnectedSocket() client: UserSocket,
 		@MessageBody() data: { roomId: string },
 	) {
-		const { roomId } = data;
+		try {
+			const { roomId } = data;
 
-		// Eliminar socket de la sala
-		client.leave(`room:${roomId}`);
+			// Eliminar socket de la sala
+			const roomKey = `room:${roomId}`;
+			client.leave(roomKey);
+			console.log("✅ leaveRoom - Cliente salió de sala:", roomKey);
 
-		return {
-			status: "success",
-			roomId,
-		};
+			return {
+				status: "success",
+				roomId,
+			};
+		} catch (error) {
+			console.error("❌ Error en leaveRoom:", error);
+			return {
+				status: "error",
+				message: error.message || "Error al salir de la sala",
+			};
+		}
 	}
 
 	@UseGuards(WsJwtGuard)
@@ -148,60 +244,105 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 		@WsAuthUser() user: any,
 	) {
 		try {
+			console.log("✅ sendMessage - roomId:", data.roomId, "user:", user.id);
+
 			// Guardar mensaje en la base de datos
 			const message = await this.chatService.addMessage(data, user);
+			console.log("✅ sendMessage - Mensaje guardado:", message.id);
+
+			// Preparar mensaje para enviar al frontend
+			const messageData = {
+				id: message.id,
+				content: message.content,
+				roomId: message.chat_room_id,
+				senderType: message.sender_employee_id ? "employee" : message.sender_visitor_id ? "visitor" : "bot",
+				senderId: message.sender_employee_id || message.sender_visitor_id || "",
+				createdAt: message.created_at,
+				sender: message.sender_employee || message.sender_visitor,
+			};
 
 			// Emitir mensaje a todos los clientes en esa sala
-			this.server.to(`room:${data.roomId}`).emit("newMessage", message);
+			const roomKey = `room:${data.roomId}`;
+			this.server.to(roomKey).emit("newMessage", messageData);
+			console.log("✅ sendMessage - Mensaje emitido a sala:", roomKey);
 
 			return {
 				status: "success",
 				messageId: message.id,
+				message: messageData,
 			};
-		} catch (e) {
+		} catch (error) {
+			console.error("❌ Error en sendMessage:", error);
 			return {
 				status: "error",
-				message: e.message,
+				message: error.message || "Error al enviar mensaje",
 			};
 		}
-
 	}
 
-  @UseGuards(WsJwtGuard)
-  @SubscribeMessage("sendMessageToBot")
-  async sendMessageToBot(
-    @ConnectedSocket() client: UserSocket,
-    @MessageBody() data: { roomId: string; content: string; supplierId: string },
-    @WsAuthUser() user: any,
-  ) {
-    try {
-      if (!data?.roomId || !data?.content || !data?.supplierId) {
-        return { status: "error", message: "roomId, content y supplierId son requeridos" };
-      }
-      const message = await this.supplierBotService.sendMessageToBot({
-        roomId: data.roomId,
-        prompt: data.content,
-        supplierId: data.supplierId,
-      });
-      // Emitir respuesta del bot
-      this.server.to(`room:${data.roomId}`).emit("newMessage", message);
-      return { status: "success", messageId: message.id };
-    } catch (e: any) {
-      return { status: "error", message: e.message };
-    }
-  }
+	@UseGuards(WsJwtGuard)
+	@SubscribeMessage("sendMessageToBot")
+	async sendMessageToBot(
+		@ConnectedSocket() client: UserSocket,
+		@MessageBody() data: { roomId: string; content: string; supplierId: string },
+		@WsAuthUser() user: any,
+	) {
+		try {
+			console.log("✅ sendMessageToBot - roomId:", data.roomId);
+
+			if (!data?.roomId || !data?.content || !data?.supplierId) {
+				return {
+					status: "error",
+					message: "roomId, content y supplierId son requeridos",
+				};
+			}
+
+			const message = await this.supplierBotService.sendMessageToBot({
+				roomId: data.roomId,
+				prompt: data.content,
+				supplierId: data.supplierId,
+			});
+
+			// Preparar mensaje para enviar al frontend
+			const messageData = {
+				id: message.id,
+				content: message.content,
+				roomId: message.chat_room_id,
+				senderType: "bot",
+				senderId: "",
+				createdAt: message.created_at,
+			};
+
+			// Emitir respuesta del bot
+			const roomKey = `room:${data.roomId}`;
+			this.server.to(roomKey).emit("newMessage", messageData);
+
+			return {
+				status: "success",
+				messageId: message.id,
+				message: messageData,
+			};
+		} catch (error) {
+			console.error("❌ Error en sendMessageToBot:", error);
+			return {
+				status: "error",
+				message: error.message || "Error al enviar mensaje al bot",
+			};
+		}
+	}
 
 	@UseGuards(WsJwtGuard)
 	@SubscribeMessage("createPrivateRoom")
 	async createPrivateRoom(
 		@ConnectedSocket() client: UserSocket,
-		@MessageBody()
-		data: { targetUserId: string; targetUserType: "employee" | "visitor" },
+		@MessageBody() data: { targetUserId: string; targetUserType: "employee" | "visitor" },
 		@WsAuthUser() user: any,
 	) {
 		try {
 			const { targetUserId, targetUserType } = data;
 			const { id: userId, userType } = user;
+
+			console.log("✅ createPrivateRoom - from:", userId, "to:", targetUserId);
 
 			// Crear o recuperar sala privada
 			const room = await this.chatService.getOrCreatePrivateRoom(
@@ -212,28 +353,48 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 			);
 
 			// Unir al socket del usuario a la sala
-			client.join(`room:${room.id}`);
+			const roomKey = `room:${room.id}`;
+			client.join(roomKey);
+			console.log("✅ createPrivateRoom - Cliente unido a sala:", roomKey);
 
 			// Notificar a otros clientes de los usuarios involucrados
 			const targetClientKey = `${targetUserType}:${targetUserId}`;
 			const targetSockets = this.connectedClients.get(targetClientKey) || [];
 
-			targetSockets.forEach((socketId) => {
+			for (const socketId of targetSockets) {
 				const socket = this.server.sockets.sockets.get(socketId);
 				if (socket) {
-					socket.join(`room:${room.id}`);
-					socket.emit("roomCreated", room);
+					socket.join(roomKey);
+					socket.emit("roomCreated", {
+						id: room.id,
+						name: room.name,
+						type: room.type,
+						supplier_id: room.supplier_id,
+						is_active: room.is_active,
+						created_at: room.created_at,
+						updated_at: room.updated_at,
+					});
+					console.log("✅ createPrivateRoom - Socket objetivo notificado:", socketId);
 				}
-			});
+			}
 
 			return {
 				status: "success",
-				room,
+				room: {
+					id: room.id,
+					name: room.name,
+					type: room.type,
+					supplier_id: room.supplier_id,
+					is_active: room.is_active,
+					created_at: room.created_at,
+					updated_at: room.updated_at,
+				},
 			};
-		} catch (e) {
+		} catch (error) {
+			console.error("❌ Error en createPrivateRoom:", error);
 			return {
 				status: "error",
-				message: e.message,
+				message: error.message || "Error al crear sala privada",
 			};
 		}
 	}
@@ -241,12 +402,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	@UseGuards(WsJwtGuard)
 	@SubscribeMessage("getRoomMessages")
 	async getRoomMessages(
+		@ConnectedSocket() client: UserSocket,
 		@MessageBody() data: { roomId: string },
 		@WsAuthUser() user: any,
 	) {
 		try {
 			const { roomId } = data;
 			const { id, userType } = user;
+
+			console.log("✅ getRoomMessages - userId:", id, "roomId:", roomId);
 
 			// Obtener mensajes de la sala
 			const messages = await this.chatService.getRoomMessages(
@@ -255,35 +419,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 				userType,
 			);
 
-			return {
-				status: "success",
-				messages,
-			};
-		} catch (e) {
-			return {
-				status: "error",
-				message: e.message,
-			};
-		}
-	}
+			// Mapear mensajes al formato esperado por el frontend
+			const mappedMessages = messages.map((msg) => ({
+				id: msg.id,
+				content: msg.content,
+				roomId: msg.chat_room_id,
+				senderType: msg.sender_employee_id ? "employee" : msg.sender_visitor_id ? "visitor" : "bot",
+				senderId: msg.sender_employee_id || msg.sender_visitor_id || "",
+				createdAt: msg.created_at,
+				sender: msg.sender_employee || msg.sender_visitor,
+			}));
 
-	@UseGuards(WsJwtGuard)
-	@SubscribeMessage("getUserRooms")
-	async getUserRooms(@WsAuthUser() user: any) {
-		try {
-			const { id, userType } = user;
-
-			// Obtener salas del usuario
-			const rooms = await this.chatService.getUserRooms(id, userType);
+			console.log("✅ getRoomMessages - Mensajes encontrados:", mappedMessages.length);
 
 			return {
 				status: "success",
-				rooms,
+				messages: mappedMessages,
 			};
-		} catch (e) {
+		} catch (error) {
+			console.error("❌ Error en getRoomMessages:", error);
 			return {
 				status: "error",
-				message: e.message,
+				message: error.message || "Error al obtener mensajes",
 			};
 		}
 	}

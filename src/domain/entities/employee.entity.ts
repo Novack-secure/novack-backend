@@ -54,10 +54,12 @@ export class Employee {
 	@ManyToOne(
 		() => Supplier,
 		(supplier) => supplier.employees,
+		{ nullable: true }
 	)
+	@JoinColumn({ name: "supplier_id" })
 	supplier: Supplier;
 
-	@Column()
+	@Column({ nullable: true })
 	supplier_id: string;
 
 	@OneToMany(

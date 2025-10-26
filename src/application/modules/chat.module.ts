@@ -14,7 +14,7 @@ import { ChatService } from "../services/chat.service";
 import { SupplierBotService } from "../services/supplier-bot.service";
 import { DeepseeClient } from "../services/deepsee.client";
 import { ChatController } from "../../interface/controllers/chat.controller";
-import { ChatGateway } from "../../infrastructure/websockets/chat.gateway";
+import { SimpleChatGateway } from "../../infrastructure/websockets/simple-chat.gateway";
 import { WsJwtGuard } from "../guards/ws-jwt.guard";
 import { RedisDatabaseModule } from "../../infrastructure/database/redis/redis.database.module";
 import { AuthModule } from "./auth.module";
@@ -60,7 +60,7 @@ import { VisitorRepository } from "src/infrastructure/repositories/visitor.repos
 	controllers: [ChatController],
   providers: [
     ChatService,
-    ChatGateway,
+    SimpleChatGateway,
     WsJwtGuard,
     SupplierBotService,
     DeepseeClient,

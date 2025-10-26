@@ -53,21 +53,21 @@ import { ReflectorModule } from "./application/modules/reflector.module";
 		}),
 		// Rate limiting configuration to prevent abuse
 		ThrottlerModule.forRoot([
-			{
-				name: "login",
-				ttl: 60000, // 1 minuto en milisegundos
-				limit: 5, // 5 intentos por minuto
-			},
-			{
-				name: "api",
-				ttl: 60000,
-				limit: 20,
-			},
-			{
-				name: "default",
-				ttl: 60000,
-				limit: 10,
-			},
+		{
+		name: "login",
+		ttl: 60000, // 1 minuto en milisegundos
+		limit: process.env.NODE_ENV === 'development' ? 1000 : 5, // Más permisivo en desarrollo
+		},
+		{
+		name: "api",
+		ttl: 60000,
+		limit: process.env.NODE_ENV === 'development' ? 1000 : 50, // Más permisivo en desarrollo
+		},
+		{
+		name: "default",
+		ttl: 60000,
+		limit: process.env.NODE_ENV === 'development' ? 1000 : 100, // Más permisivo en desarrollo
+		},
 		]),
 		// Programación de tareas
 
