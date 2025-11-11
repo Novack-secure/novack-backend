@@ -44,10 +44,11 @@ COPY package.json pnpm-lock.yaml ./
 # Install ONLY production dependencies
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy built application and necessary files from builder
+# Copy built application from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
+
+# Copy email templates (needed for runtime)
+COPY --from=builder /app/templates ./templates
 
 # Create logs directory with proper permissions
 RUN mkdir -p /app/logs && chmod 777 /app/logs
