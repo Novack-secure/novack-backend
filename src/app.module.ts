@@ -21,7 +21,7 @@ import { EmailVerificationModule } from "./application/modules/email-verificatio
 import { RedisDatabaseModule } from "./infrastructure/database/redis/redis.database.module";
 import { CardSchedulerModule } from "./application/modules/card-scheduler.module";
 import { ScheduleModule } from "@nestjs/schedule";
-import { DatabaseResetModule } from "./application/modules/database-reset.module";
+// import { DatabaseResetModule } from "./application/modules/database-reset.module"; // DESHABILITADO EN PRODUCCIÓN
 import { ChatModule } from "./application/modules/chat.module";
 import { DashboardModule } from "./application/modules/dashboard.module";
 import { AppointmentModule } from "./application/modules/appointment.module";
@@ -35,9 +35,9 @@ import { PermissionModule } from "./application/modules/permission.module";
 import { APP_INTERCEPTOR, Reflector } from "@nestjs/core";
 
 import { DataMaskingInterceptor } from "./application/interceptors/data-masking.interceptor";
-import { RedisTestController } from "./infrastructure/database/redis/redis-test.controller";
+// import { RedisTestController } from "./infrastructure/database/redis/redis-test.controller"; // DESHABILITADO EN PRODUCCIÓN
 import { LoggingModule } from "./infrastructure/logging/logging.module";
-import { LogstashModule } from "./infrastructure/services/logstash.module";
+// import { LogstashModule } from "./infrastructure/services/logstash.module"; // DESHABILITADO EN PRODUCCIÓN
 import { HealthModule } from "./application/modules/health.module";
 import { TokenModule } from "./application/modules/token.module";
 import configuration from "./config/configuration";
@@ -111,8 +111,8 @@ import { ReflectorModule } from "./application/modules/reflector.module";
 		UserPreferenceModule, // User preferences and settings
 		FormModule, // Dynamic form system for visitors
 
-		// Maintenance modules
-		DatabaseResetModule, // Database reset functionality (development only)
+		// Maintenance modules (DISABLED IN PRODUCTION)
+		// DatabaseResetModule NO SE DEBE USAR EN PRODUCCIÓN - Puede borrar toda la BD
 
 		// Healthcheck module
 		HealthModule,
@@ -136,9 +136,11 @@ import { ReflectorModule } from "./application/modules/reflector.module";
 			},
 		}),
 		LoggingModule,
-		LogstashModule, // Nuevo módulo para gestionar conexión con Logstash
+		// LogstashModule DESHABILITADO EN PRODUCCIÓN - Solo para desarrollo
 	],
-	controllers: [RedisTestController],
+	controllers: [
+		// RedisTestController DESHABILITADO EN PRODUCCIÓN - Solo para testing
+	],
 	providers: [
 		// Interceptor global para enmascarar datos sensibles
 		// DESACTIVADO: No enmascarar datos en desarrollo
