@@ -94,10 +94,15 @@ async function bootstrap() {
 		SwaggerModule.setup("api", app as any, document);
 	}
 
+	// Configurar CORS - Solo permitir tu frontend
+	const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",").map(origin => origin.trim()) || [
+		"http://localhost:3000",
+	];
+	
+	logger.log(`🔒 CORS configurado para: ${allowedOrigins.join(", ")}`);
+	
 	app.enableCors({
-		origin: process.env.ALLOWED_ORIGINS?.split(",") || [
-			"http://localhost:3000",
-		],
+		origin: allowedOrigins,
 		methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
 		allowedHeaders: [
 			"Content-Type",
