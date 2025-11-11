@@ -22,6 +22,9 @@ async function bootstrap() {
 		logger: isSimpleLogging ? logLevels : undefined, // Usar logger básico si SIMPLE_LOGGING=true
 	});
 
+	// Confiar en el proxy de Railway/Vercel para headers correctos
+	app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
 	// Aplicar el logger estructurado solo si no estamos en modo simple
 	if (!isSimpleLogging) {
 		const structuredLoggerService = await app.resolve(StructuredLoggerService);
@@ -101,8 +104,22 @@ async function bootstrap() {
 	
 	logger.log(`🔒 CORS configurado para: ${allowedOrigins.join(", ")}`);
 	
+	// CORS debe ir ANTES de cualquier middleware
 	app.enableCors({
-		origin: allowedOrigins,
+		origin: (origin, callback) => {
+			// Permitir peticiones sin origin (servidor a servidor, curl, etc.)
+			if (!origin) {
+				return callback(null, true);
+			}
+			
+			// Verificar si el origin está permitido
+			if (allowedOrigins.includes(origin)) {
+				callback(null, true);
+			} else {
+				logger.warn(`🚫 CORS bloqueó origen no permitido: ${origin}`);
+				callback(new Error(`Origin ${origin} no permitido por CORS`));
+			}
+		},
 		methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
 		allowedHeaders: [
 			"Content-Type",
@@ -114,6 +131,8 @@ async function bootstrap() {
 		exposedHeaders: ["Authorization", "XSRF-TOKEN"],
 		credentials: true,
 		maxAge: 3600,
+		preflightContinue: false,
+		optionsSuccessStatus: 204,
 	});
 
 	await app.listen(port);
