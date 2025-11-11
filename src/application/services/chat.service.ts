@@ -279,6 +279,118 @@ export class ChatService {
 		return messages;
 	}
 
+	// Obtener mensajes de una sala con paginación
+	async getRoomMessagesPaginated(
+		roomId: string,
+		userId: string,
+		userType: "employee" | "visitor",
+		limit: number = 50,
+		cursor?: string,
+	): Promise<{ messages: ChatMessage[]; hasMore: boolean; nextCursor: string | null }> {
+		// Verificar que la sala existe
+		const room = await this.chatRoomRepository.findOne({
+			where: { id: roomId },
+			relations: ["employees", "visitors"],
+		});
+
+		if (!room) {
+			throw new NotFoundException("La sala de chat no existe");
+		}
+
+		// Verificar acceso del usuario a la sala
+		if (userType === "visitor") {
+			const hasAccess = room.visitors.some((visitor) => visitor.id === userId);
+			if (!hasAccess) {
+				throw new BadRequestException(
+					"El visitante no tiene acceso a esta sala de chat",
+				);
+			}
+		} else {
+			// empleado
+			// Para salas de tipo grupo, verificar pertenencia al proveedor
+			if (room.type === ChatRoomType.SUPPLIER_GROUP) {
+				const employee = await this.employeeRepository.findOne({
+					where: { id: userId },
+					relations: ["supplier"],
+				});
+				if (!employee || employee.supplier?.id !== room.supplier_id) {
+					throw new BadRequestException(
+						"El empleado no pertenece al proveedor de esta sala de chat",
+					);
+				}
+			} else {
+				// Para otros tipos de salas, verificar pertenencia directa
+				const hasAccess = room.employees.some((emp) => emp.id === userId);
+				if (!hasAccess) {
+					throw new BadRequestException(
+						"El empleado no tiene acceso a esta sala de chat",
+					);
+				}
+			}
+		}
+
+		// Construir query con paginación
+		const queryBuilder = this.chatMessageRepository
+			.createQueryBuilder("message")
+			.leftJoinAndSelect("message.sender_employee", "sender_employee")
+			.leftJoinAndSelect("message.sender_visitor", "sender_visitor")
+			.where("message.chat_room_id = :roomId", { roomId })
+			.orderBy("message.created_at", "DESC")
+			.take(limit + 1); // Obtener 1 más para saber si hay más
+
+		// Si hay cursor, obtener mensajes anteriores a ese cursor
+		if (cursor) {
+			const cursorMessage = await this.chatMessageRepository.findOne({
+				where: { id: cursor },
+			});
+			if (cursorMessage) {
+				queryBuilder.andWhere("message.created_at < :cursorDate", {
+					cursorDate: cursorMessage.created_at,
+				});
+			}
+		}
+
+		const messages = await queryBuilder.getMany();
+
+		// Verificar si hay más mensajes
+		const hasMore = messages.length > limit;
+		if (hasMore) {
+			messages.pop(); // Remover el mensaje extra
+		}
+
+		// Invertir el orden para que los más antiguos estén primero
+		const orderedMessages = messages.reverse();
+
+		// El cursor para la siguiente página es el ID del mensaje más antiguo
+		const nextCursor = hasMore && orderedMessages.length > 0
+			? orderedMessages[0].id
+			: null;
+
+		// Marcar mensajes como leídos si no son del usuario actual
+		const unreadMessages = orderedMessages.filter((message) => {
+			if (userType === "employee") {
+				return !message.is_read && message.sender_employee_id !== userId;
+			} else {
+				return !message.is_read && message.sender_visitor_id !== userId;
+			}
+		});
+
+		if (unreadMessages.length > 0) {
+			await Promise.all(
+				unreadMessages.map((message) => {
+					message.is_read = true;
+					return this.chatMessageRepository.save(message);
+				}),
+			);
+		}
+
+		return {
+			messages: orderedMessages,
+			hasMore,
+			nextCursor,
+		};
+	}
+
 	// Obtener salas de chat de un usuario
 	async getUserRooms(
 		userId: string,

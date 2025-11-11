@@ -403,24 +403,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	@SubscribeMessage("getRoomMessages")
 	async getRoomMessages(
 		@ConnectedSocket() client: UserSocket,
-		@MessageBody() data: { roomId: string },
+		@MessageBody() data: { roomId: string; limit?: number; cursor?: string },
 		@WsAuthUser() user: any,
 	) {
 		try {
-			const { roomId } = data;
+			const { roomId, limit = 50, cursor } = data;
 			const { id, userType } = user;
 
-			console.log("✅ getRoomMessages - userId:", id, "roomId:", roomId);
+			console.log("✅ getRoomMessages - userId:", id, "roomId:", roomId, "limit:", limit, "cursor:", cursor);
 
-			// Obtener mensajes de la sala
-			const messages = await this.chatService.getRoomMessages(
+			// Obtener mensajes de la sala con paginación
+			const result = await this.chatService.getRoomMessagesPaginated(
 				roomId,
 				id,
 				userType,
+				limit,
+				cursor,
 			);
 
 			// Mapear mensajes al formato esperado por el frontend
-			const mappedMessages = messages.map((msg) => ({
+			const mappedMessages = result.messages.map((msg) => ({
 				id: msg.id,
 				content: msg.content,
 				roomId: msg.chat_room_id,
@@ -430,11 +432,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 				sender: msg.sender_employee || msg.sender_visitor,
 			}));
 
-			console.log("✅ getRoomMessages - Mensajes encontrados:", mappedMessages.length);
+			console.log("✅ getRoomMessages - Mensajes encontrados:", mappedMessages.length, "hasMore:", result.hasMore);
 
 			return {
 				status: "success",
 				messages: mappedMessages,
+				hasMore: result.hasMore,
+				nextCursor: result.nextCursor,
 			};
 		} catch (error) {
 			console.error("❌ Error en getRoomMessages:", error);

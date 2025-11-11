@@ -3,7 +3,7 @@ import { CreateVisitorDto } from "../dtos/visitor";
 import { UpdateVisitorDto } from "../dtos/visitor";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { Visitor, Appointment, Supplier } from "src/domain/entities";
+import { Visitor, Appointment, Supplier, Employee } from "src/domain/entities";
 import { CardService } from "./card.service";
 import { EmailService } from "./email.service";
 import { StructuredLoggerService } from "src/infrastructure/logging/structured-logger.service"; // Added import
@@ -17,6 +17,8 @@ export class VisitorService {
 		private readonly appointmentRepository: Repository<Appointment>,
 		@InjectRepository(Supplier)
 		private readonly supplierRepository: Repository<Supplier>,
+		@InjectRepository(Employee)
+		private readonly employeeRepository: Repository<Employee>,
 		private readonly cardService: CardService,
 		private readonly emailService: EmailService,
 		private readonly logger: StructuredLoggerService, // Added logger
@@ -55,6 +57,17 @@ export class VisitorService {
 			createVisitorDto.check_out_time,
 		);
 
+		// Validar host employee si se proporciona
+		let hostEmployee = null;
+		if (createVisitorDto.host_employee_id) {
+			hostEmployee = await this.employeeRepository.findOne({
+				where: { id: createVisitorDto.host_employee_id },
+			});
+			if (!hostEmployee) {
+				throw new BadRequestException("El empleado anfitrión no existe");
+			}
+		}
+
 		// Crear visitante
 		const visitor = this.visitorRepository.create({
 			name: createVisitorDto.name,
@@ -76,8 +89,10 @@ export class VisitorService {
 			check_out_time: createVisitorDto.check_out_time,
 			complaints: createVisitorDto.complaints || { invitado1: "ninguno" },
 			status: "pendiente",
+			location: createVisitorDto.appointment_location,
 			visitor: savedVisitor,
 			supplier,
+			host_employee: hostEmployee,
 		});
 
 		await this.appointmentRepository.save(appointment);

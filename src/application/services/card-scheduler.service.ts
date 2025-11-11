@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
 import { LessThan, MoreThanOrEqual, Repository, Between } from "typeorm";
-import { Card, CardLocation, Visitor, Appointment } from "src/domain/entities";
+import { Card, CardLocation, Visitor, Appointment, Supplier } from "src/domain/entities";
 import { CardService } from "./card.service";
 
 @Injectable()
@@ -18,6 +18,8 @@ export class CardSchedulerService {
 		private readonly visitorRepository: Repository<Visitor>,
 		@InjectRepository(Appointment)
 		private readonly appointmentRepository: Repository<Appointment>,
+		@InjectRepository(Supplier)
+		private readonly supplierRepository: Repository<Supplier>,
 		private readonly cardService: CardService,
 	) {}
 
@@ -168,11 +170,27 @@ export class CardSchedulerService {
 					`Tarjeta con número ${cardNumber} no encontrada, intentando crearla para la empresa ${companyId}`,
 				);
 
+				// Verificar que el supplier existe (companyId debería ser supplier_id)
+				const supplier = await this.supplierRepository.findOne({
+					where: { id: companyId },
+				});
+
+				if (!supplier) {
+					this.logger.error(
+						`No se encontró el supplier con ID ${companyId}. No se puede crear la tarjeta automáticamente.`,
+					);
+					throw new Error(
+						`Supplier con ID ${companyId} no encontrado`,
+					);
+				}
+
 				// Para este ejemplo, creamos automáticamente la tarjeta si no existe
 				// En producción, deberías tener un proceso más controlado para la creación de tarjetas
 				card = this.cardRepository.create({
 					card_number: cardNumber,
 					is_active: true,
+					supplier,
+					supplier_id: supplier.id,
 					additional_info: {
 						company_id: companyId,
 						last_battery_level: batteryLevel,

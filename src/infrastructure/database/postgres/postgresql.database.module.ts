@@ -1,11 +1,11 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { 
+import {
   Employee,
-  Supplier, 
+  Supplier,
   Card,
-  Visitor, 
+  Visitor,
   ChatRoom,
   ChatMessage,
   AuditLog,
@@ -14,6 +14,13 @@ import {
 	Appointment,
 	SupplierSubscription,
 	RefreshToken,
+	UserPreference,
+	FormTemplate,
+	FormField,
+	FormSubmission,
+	FormAnswer,
+	Role,
+	Permission,
 } from '../../../domain/entities';
 import { EmployeeCredentials } from '../../../domain/entities/employee-credentials.entity';
 import { PostgresqlDatabaseService } from './postgresql.database.service';
@@ -24,7 +31,7 @@ import { PostgresqlDatabaseController } from './postgresql.database.controller';
  */
 const entities = [
 	LoginAttempt,
-	CardLocation,	
+	CardLocation,
   Employee,
   EmployeeCredentials,
   Supplier,
@@ -36,6 +43,13 @@ const entities = [
   Appointment,
   SupplierSubscription,
   RefreshToken,
+  UserPreference,
+  FormTemplate,
+  FormField,
+  FormSubmission,
+  FormAnswer,
+  Role,
+  Permission,
 ];
 
 /**

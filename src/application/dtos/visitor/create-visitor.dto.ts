@@ -128,4 +128,22 @@ export class CreateVisitorDto {
 	@IsUUID()
 	@IsNotEmpty({ message: "El ID del proveedor es requerido" })
 	supplier_id: string;
+
+	@ApiPropertyOptional({
+		description: "Ubicación específica de la cita dentro de las instalaciones",
+		example: "Sala de Juntas B - Edificio Principal",
+		maxLength: 200,
+	})
+	@IsOptional()
+	@IsString()
+	appointment_location?: string;
+
+	@ApiPropertyOptional({
+		description: "ID UUID del empleado anfitrión que recibirá al visitante",
+		example: "456e7890-e89b-12d3-a456-426614174111",
+		format: "uuid",
+	})
+	@IsOptional()
+	@IsUUID()
+	host_employee_id?: string;
 }

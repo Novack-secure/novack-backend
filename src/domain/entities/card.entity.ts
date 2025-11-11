@@ -22,8 +22,19 @@ export class Card {
 	@Column({ unique: true })
 	card_number: string;
 
+	@Column({ unique: true, nullable: true })
+	card_uuid: string;
+
 	@Column({ default: true })
 	is_active: boolean;
+
+	@Column({
+		type: "enum",
+		enum: ["active", "inactive", "lost", "damaged", "assigned", "available"],
+		default: "active",
+		nullable: true
+	})
+	status: string;
 
 	@Column({ nullable: true })
 	issued_at: Date;
@@ -40,6 +51,9 @@ export class Card {
 	@Column({ type: "numeric", precision: 5, scale: 2, nullable: true })
 	accuracy: number;
 
+	@Column({ type: "integer", nullable: true, default: 100 })
+	battery_percentage: number;
+
 	@Column({ type: "jsonb", nullable: true })
 	additional_info: Record<string, any>;
 
@@ -53,26 +67,31 @@ export class Card {
 		() => Supplier,
 		(supplier) => supplier.cards,
 	)
+	@JoinColumn({ name: "supplier_id" })
 	supplier: Supplier;
 
 	@Column()
 	supplier_id: string;
 
-	@ManyToOne(
-		() => Employee,
-		(employee) => employee.cards,
-	)
-	assigned_to: Employee;
-
-	@Column({ nullable: true })
-	assigned_to_id: string;
-
 	@OneToOne(
 		() => Visitor,
 		(visitor) => visitor.card,
 	)
-	@JoinColumn()
+	@JoinColumn({ name: "visitor_id" })
 	visitor: Visitor;
+
+	@Column({ nullable: true })
+	visitor_id: string;
+
+	@ManyToOne(
+		() => Employee,
+		(employee) => employee.cards,
+	)
+	@JoinColumn({ name: "employee_id" })
+	employee: Employee;
+
+	@Column({ nullable: true })
+	employee_id: string;
 
 	@OneToMany(
 		() => CardLocation,

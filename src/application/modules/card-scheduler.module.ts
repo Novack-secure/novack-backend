@@ -3,7 +3,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 
 import { JwtModule } from "@nestjs/jwt";
 // import { ScheduleModule } from "@nestjs/schedule"; // Ya no es necesario aquí
-import { Card, CardLocation, Visitor, Appointment } from "src/domain/entities";
+import { Card, CardLocation, Visitor, Appointment, Supplier } from "src/domain/entities";
 import { CardSchedulerService } from "../services/card-scheduler.service";
 import { CardModule } from "./card.module";
 import { ConfigModule, ConfigService } from "@nestjs/config";
@@ -11,7 +11,7 @@ import { TokenModule } from "./token.module";
 
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([Card, CardLocation, Visitor, Appointment]),
+		TypeOrmModule.forFeature([Card, CardLocation, Visitor, Appointment, Supplier]),
 		TokenModule,
 		JwtModule.registerAsync({
 			imports: [ConfigModule],

@@ -23,14 +23,14 @@ export class AppointmentRepository implements IAppointmentRepository {
 		// Load relations commonly needed when fetching a specific appointment.
 		return this.ormRepository.findOne({
 			where: { id },
-			relations: ["visitor", "supplier", "visitor.card"], // Example: load visitor and its card too
+			relations: ["visitor", "supplier", "visitor.card", "host_employee"],
 		});
 	}
 
 	async findByVisitorId(visitorId: string): Promise<Appointment[]> {
 		return this.ormRepository.find({
 			where: { visitor: { id: visitorId } }, // Querying by related entity ID
-			relations: ["visitor", "supplier"], // Load relevant relations
+			relations: ["visitor", "supplier", "host_employee"], // Load relevant relations
 			order: { scheduled_time: "ASC" }, // Example: oldest first, or 'DESC' for newest
 		});
 	}
@@ -38,7 +38,7 @@ export class AppointmentRepository implements IAppointmentRepository {
 	async findBySupplierId(supplierId: string): Promise<Appointment[]> {
 		return this.ormRepository.find({
 			where: { supplier: { id: supplierId } }, // Querying by related entity ID
-			relations: ["visitor", "supplier"], // Load relevant relations
+			relations: ["visitor", "supplier", "host_employee"], // Load relevant relations
 			order: { scheduled_time: "ASC" }, // Example ordering
 		});
 	}

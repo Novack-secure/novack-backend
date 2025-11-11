@@ -4,6 +4,7 @@ import {
 	Column,
 	ManyToOne,
 	CreateDateColumn,
+	JoinColumn,
 } from "typeorm";
 import { Card } from "./card.entity";
 
@@ -31,6 +32,7 @@ export class CardLocation {
 		() => Card,
 		(card) => card.locations,
 	)
+	@JoinColumn({ name: "card_id" })
 	card: Card;
 
 	@Column()

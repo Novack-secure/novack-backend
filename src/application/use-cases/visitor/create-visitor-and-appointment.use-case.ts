@@ -4,9 +4,12 @@ import {
 	BadRequestException,
 	NotFoundException,
 } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
 import { Visitor } from "src/domain/entities/visitor.entity";
 import { Appointment } from "src/domain/entities/appointment.entity";
 import { Supplier } from "src/domain/entities/supplier.entity";
+import { Employee } from "src/domain/entities/employee.entity";
 import { IVisitorRepository } from "src/domain/repositories/visitor.repository.interface";
 import { IAppointmentRepository } from "src/domain/repositories/appointment.repository.interface";
 import { ISupplierRepository } from "src/domain/repositories/supplier.repository.interface";
@@ -24,6 +27,8 @@ export class CreateVisitorAndAppointmentUseCase {
 		private readonly appointmentRepository: IAppointmentRepository,
 		@Inject(ISupplierRepository)
 		private readonly supplierRepository: ISupplierRepository,
+		@InjectRepository(Employee)
+		private readonly employeeRepository: Repository<Employee>,
 		private readonly emailService: EmailService,
 		private readonly cardService: CardService,
 		private readonly logger: StructuredLoggerService,
@@ -68,6 +73,20 @@ export class CreateVisitorAndAppointmentUseCase {
 			createVisitorDto.check_out_time,
 		);
 
+		// Validate host employee if provided
+		let hostEmployee = null;
+		if (createVisitorDto.host_employee_id) {
+			hostEmployee = await this.employeeRepository.findOne({
+				where: { id: createVisitorDto.host_employee_id },
+			});
+			if (!hostEmployee) {
+				this.logger.warn("Host employee not found for visitor creation", undefined, {
+					hostEmployeeId: createVisitorDto.host_employee_id,
+				});
+				throw new BadRequestException("El empleado anfitrión especificado no existe");
+			}
+		}
+
 		// Create Visitor entity instance
 		const visitorEntityData: Partial<Visitor> = {
 			name: createVisitorDto.name,
@@ -97,8 +116,10 @@ export class CreateVisitorAndAppointmentUseCase {
 				: undefined,
 			complaints: createVisitorDto.complaints || { invitado1: "ninguno" }, // Default or from DTO
 			status: "pendiente", // Initial status
+			location: createVisitorDto.appointment_location,
 			visitor: savedVisitor, // Link to the saved visitor
 			supplier: supplier, // Link to the supplier
+			host_employee: hostEmployee, // Link to the host employee
 		};
 		const appointmentInstance = this.appointmentRepository.create(
 			appointmentEntityData,

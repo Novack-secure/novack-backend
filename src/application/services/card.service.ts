@@ -27,27 +27,28 @@ export class CardService {
 	}
 
 	async findAvailableCards(): Promise<Card[]> {
-		// No specific log requested for this find method
+		// Tarjetas disponibles son aquellas que están activas y no asignadas a ningún visitante
 		return await this.cardRepository.find({
 			where: {
 				is_active: true,
-				visitor: null, // TypeORM 5+ uses 'IsNull()' or just 'visitor: null' might not work as expected with relations. Assuming 'visitor: null' works for this version.
+				visitor_id: null,
 			},
 			relations: ["supplier", "supplier.subscription"],
 		});
 	}
 
 	async recordLocation(
-		card_id: string,
+		card_number: string,
 		latitude: number,
 		longitude: number,
 		accuracy?: number,
 	): Promise<CardLocation> {
-		const card = await this.findOne(card_id); // findOne might throw, which is fine.
+		const card = await this.findOneByCardNumber(card_number); // findOne might throw, which is fine.
 
 		// Crear registro de ubicación
 		const location = this.locationRepository.create({
 			card,
+			card_id: card.id,
 			latitude,
 			longitude,
 			accuracy,
@@ -62,7 +63,7 @@ export class CardService {
 
 		const savedLocation = await this.locationRepository.save(location);
 		this.structuredLogger.debug("Card location recorded", undefined, {
-			cardId: card_id,
+			cardId: card.id,
 			latitude,
 			longitude,
 			accuracy,
@@ -70,7 +71,7 @@ export class CardService {
 
 		// Guardar en caché Redis
 		try {
-			await this.redisService.saveCardLocation(card_id, {
+			await this.redisService.saveCardLocation(card.id, {
 				id: savedLocation.id,
 				latitude,
 				longitude,
@@ -82,7 +83,7 @@ export class CardService {
 			this.structuredLogger.warn(
 				`Error al guardar ubicación de tarjeta en caché: ${error.message}`,
 				undefined,
-				{ cardId: card_id },
+				{ cardId: card.id },
 			);
 		}
 
@@ -153,6 +154,7 @@ export class CardService {
 		}
 
 		card.visitor = visitor;
+		card.visitor_id = visitor.id;
 		card.issued_at = new Date();
 		visitor.state = "en_progreso";
 
@@ -198,6 +200,7 @@ export class CardService {
 		}
 
 		card.visitor = null;
+		card.visitor_id = null;
 		card.issued_at = null;
 		const unassignedCard = await this.cardRepository.save(card);
 		this.structuredLogger.log(
@@ -261,9 +264,13 @@ export class CardService {
 		}
 
 		const newCard = this.cardRepository.create({
+			card_uuid: createCardDto.card_uuid,
 			card_number: createCardDto.card_number || `CARD-${Date.now()}`, // Consider a more robust unique number generation
 			is_active: createCardDto.is_active ?? true,
+			status: createCardDto.status || "active",
+			battery_percentage: createCardDto.battery_percentage ?? 100,
 			supplier,
+			supplier_id: supplier.id,
 		});
 
 		const savedCard = await this.cardRepository.save(newCard);
@@ -277,14 +284,34 @@ export class CardService {
 
 	async findAll() {
 		return await this.cardRepository.find({
-			relations: ["supplier", "visitor", "locations"],
+			relations: ["supplier", "visitor", "employee", "locations"],
+		});
+	}
+
+	async findBySupplier(supplierId: string) {
+		return await this.cardRepository.find({
+			where: { supplier_id: supplierId },
+			relations: ["supplier", "visitor", "employee", "locations"],
 		});
 	}
 
 	async findOne(id: string) {
 		const card = await this.cardRepository.findOne({
 			where: { id },
-			relations: ["supplier", "supplier.subscription", "visitor", "locations"],
+			relations: ["supplier", "supplier.subscription", "visitor", "employee", "locations"],
+		});
+
+		if (!card) {
+			throw new BadRequestException("La tarjeta no existe");
+		}
+
+		return card;
+	}
+
+	async findOneByCardNumber(card_number: string) {
+		const card = await this.cardRepository.findOne({
+			where: { card_number },
+			relations: ["supplier", "supplier.subscription", "visitor", "employee", "locations"],
 		});
 
 		if (!card) {
@@ -455,9 +482,13 @@ export class CardService {
 			card.supplier = supplier;
 		}
 
+		if (updateCardDto.card_uuid) card.card_uuid = updateCardDto.card_uuid;
 		if (updateCardDto.card_number) card.card_number = updateCardDto.card_number;
 		if (updateCardDto.is_active !== undefined)
 			card.is_active = updateCardDto.is_active;
+		if (updateCardDto.status) card.status = updateCardDto.status;
+		if (updateCardDto.battery_percentage !== undefined)
+			card.battery_percentage = updateCardDto.battery_percentage;
 		if (updateCardDto.expires_at) card.expires_at = updateCardDto.expires_at;
 
 		const updatedCard = await this.cardRepository.save(card);

@@ -22,7 +22,7 @@ import { CardSchedulerService } from "../../application/services/card-scheduler.
 
 @ApiTags("cards")
 @Controller("cards")
-@UseGuards(AuthGuard)
+// @UseGuards(AuthGuard)
 export class CardController {
 	constructor(
 		private readonly cardService: CardService,
@@ -57,6 +57,48 @@ export class CardController {
 	})
 	findAvailable() {
 		return this.cardService.findAvailableCards();
+	}
+
+	@Get("supplier/:supplierId")
+	@ApiOperation({ summary: "Obtener todas las tarjetas de un supplier" })
+	@ApiResponse({
+		status: 200,
+		description: "Lista de tarjetas del supplier",
+	})
+	findBySupplier(@Param("supplierId") supplierId: string) {
+		return this.cardService.findBySupplier(supplierId);
+	}
+
+	@Get("stats")
+	@ApiOperation({ summary: "Obtener estadísticas de tarjetas" })
+	@ApiResponse({
+		status: 200,
+		description: "Estadísticas de tarjetas",
+	})
+	async getStats(@Query("supplierId") supplierId?: string) {
+		const cards = supplierId
+			? await this.cardService.findBySupplier(supplierId)
+			: await this.cardService.findAll();
+
+		const total = cards.length;
+		const active = cards.filter((c) => c.status === "active" || c.status === "assigned").length;
+		const inactive = cards.filter((c) => c.status === "inactive").length;
+		const lost = cards.filter((c) => c.status === "lost").length;
+		const damaged = cards.filter((c) => c.status === "damaged").length;
+
+		const cardsWithBattery = cards.filter((c) => c.battery_percentage !== null && c.battery_percentage !== undefined);
+		const averageBattery = cardsWithBattery.length > 0
+			? cardsWithBattery.reduce((sum, c) => sum + (c.battery_percentage || 0), 0) / cardsWithBattery.length
+			: 0;
+
+		return {
+			total,
+			active,
+			inactive,
+			lost,
+			damaged,
+			averageBattery,
+		};
 	}
 
 	@Get(":id")
@@ -119,7 +161,6 @@ export class CardController {
 	}
 
 	@Post(":id/location")
-	@UseGuards(AuthGuard)
 	recordLocation(
 		@Param("id") id: string,
 		@Body() locationDto: CardLocationDto,

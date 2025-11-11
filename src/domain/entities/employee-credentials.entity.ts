@@ -60,7 +60,7 @@ export class EmployeeCredentials {
 			onDelete: "CASCADE",
 		},
 	)
-	@JoinColumn()
+	@JoinColumn({ name: "employee_id" })
 	employee: Employee;
 
 	@Column()

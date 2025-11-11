@@ -23,9 +23,15 @@ import { CardSchedulerModule } from "./application/modules/card-scheduler.module
 import { ScheduleModule } from "@nestjs/schedule";
 import { DatabaseResetModule } from "./application/modules/database-reset.module";
 import { ChatModule } from "./application/modules/chat.module";
+import { DashboardModule } from "./application/modules/dashboard.module";
+import { AppointmentModule } from "./application/modules/appointment.module";
+import { UserPreferenceModule } from "./application/modules/user-preference.module";
 import { CsrfModule } from "./application/modules/csrf.module";
 import { EncryptionModule } from "./application/modules/encryption.module";
 import { AuditModule } from "./application/modules/audit.module";
+import { FormModule } from "./application/modules/form.module";
+import { RoleModule } from "./application/modules/role.module";
+import { PermissionModule } from "./application/modules/permission.module";
 import { APP_INTERCEPTOR, Reflector } from "@nestjs/core";
 
 import { DataMaskingInterceptor } from "./application/interceptors/data-masking.interceptor";
@@ -93,11 +99,17 @@ import { ReflectorModule } from "./application/modules/reflector.module";
 		CsrfModule, // CSRF protection
 		AuditModule, // Auditoría de accesos
 		TokenModule, // Token management
+		RoleModule, // Role management
+		PermissionModule, // Permission management
 
 		// Communication modules
 		EmailModule, // Email service integration
 		EmailVerificationModule, // Email verification workflows
 		ChatModule, // Chat service with WebSockets
+		DashboardModule, // Dashboard statistics and analytics
+		AppointmentModule, // Appointment management
+		UserPreferenceModule, // User preferences and settings
+		FormModule, // Dynamic form system for visitors
 
 		// Maintenance modules
 		DatabaseResetModule, // Database reset functionality (development only)
@@ -129,10 +141,11 @@ import { ReflectorModule } from "./application/modules/reflector.module";
 	controllers: [RedisTestController],
 	providers: [
 		// Interceptor global para enmascarar datos sensibles
-		{
-			provide: APP_INTERCEPTOR,
-			useClass: DataMaskingInterceptor,
-		},
+		// DESACTIVADO: No enmascarar datos en desarrollo
+		// {
+		// 	provide: APP_INTERCEPTOR,
+		// 	useClass: DataMaskingInterceptor,
+		// },
 	],
 })
 export class AppModule {}

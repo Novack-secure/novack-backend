@@ -34,10 +34,13 @@ export class AuthService {
 	}
 
 	async validateEmployee(email: string, password: string) {
-		const employee = await this.employeeRepository.findOne({
-			where: { email },
-			relations: ["credentials", "supplier"],
-		});
+		const employee = await this.employeeRepository
+			.createQueryBuilder("employee")
+			.leftJoinAndSelect("employee.credentials", "credentials")
+			.leftJoinAndSelect("employee.supplier", "supplier")
+			.where("employee.email = :email", { email })
+			.getOne();
+
 		if (!employee || !employee.credentials) {
 			this.logger?.warn(
 				"Login failed: Invalid credentials - User not found or no credentials",

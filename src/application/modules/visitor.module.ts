@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 // VisitorService is removed
 import { VisitorController } from "../../interface/controllers/visitor.controller";
-import { Visitor, Supplier, Appointment } from "../../domain/entities"; // Corregida la ruta de importación
+import { Visitor, Supplier, Appointment, Employee } from "../../domain/entities"; // Corregida la ruta de importación
 import { SupplierSubscription } from "../../domain/entities/supplier-subscription.entity"; // Importando SupplierSubscription
 import { EmailService } from "../services/email.service"; // Kept as it's used by use cases
 import { CardModule } from "./card.module"; // Used by use cases (CardService)
@@ -48,6 +48,7 @@ import {
 			Visitor,
 			Supplier,
 			Appointment,
+			Employee,
 			SupplierSubscription,
 		]),
 		CardModule, // Provides CardService

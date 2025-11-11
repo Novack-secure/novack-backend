@@ -12,9 +12,12 @@ import {
 	JoinTable,
 } from "typeorm";
 import { Supplier } from "./supplier.entity";
-import { Card } from "./card.entity";
 import { ChatRoom } from "./chat-room.entity";
 import { EmployeeCredentials } from "./employee-credentials.entity";
+import { Appointment } from "./appointment.entity";
+import { UserPreference } from "./user-preference.entity";
+import { Role } from "./role.entity";
+import { Card } from "./card.entity";
 
 @Entity({ name: "employees" })
 export class Employee {
@@ -62,11 +65,13 @@ export class Employee {
 	@Column({ nullable: true })
 	supplier_id: string;
 
-	@OneToMany(
-		() => Card,
-		(card) => card.assigned_to,
-	)
-	cards: Card[];
+	// Relación con rol
+	@ManyToOne(() => Role, (role) => role.employees, { nullable: true, eager: true })
+	@JoinColumn({ name: "role_id" })
+	role: Role;
+
+	@Column({ nullable: true })
+	role_id: string;
 
 	@ManyToMany(() => ChatRoom)
 	@JoinTable({
@@ -81,4 +86,22 @@ export class Employee {
 		(credentials) => credentials.employee,
 	)
 	credentials: EmployeeCredentials;
+
+	@OneToMany(
+		() => Appointment,
+		(appointment) => appointment.host_employee,
+	)
+	hosted_appointments: Appointment[];
+
+	@OneToMany(
+		() => UserPreference,
+		(preference) => preference.employee,
+	)
+	preferences: UserPreference[];
+
+	@OneToMany(
+		() => Card,
+		(card) => card.employee,
+	)
+	cards: Card[];
 }

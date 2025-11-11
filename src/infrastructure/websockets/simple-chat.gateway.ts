@@ -207,6 +207,65 @@ export class SimpleChatGateway
 		}
 	}
 
+	@SubscribeMessage("getRoomMessages")
+	async handleGetRoomMessages(
+		@ConnectedSocket() client: AuthenticatedSocket,
+		@MessageBody() data: { roomId: string; limit?: number; cursor?: string },
+	): Promise<any> {
+		try {
+			if (!client.userId) {
+				return { status: "error", error: "No autenticado" };
+			}
+
+			const { roomId, limit = 50, cursor } = data;
+
+			this.logger.log(
+				`📡 getRoomMessages - userId: ${client.userId}, roomId: ${roomId}, limit: ${limit}, cursor: ${cursor}`,
+			);
+
+			// Get paginated messages
+			const result = await this.chatService.getRoomMessagesPaginated(
+				roomId,
+				client.userId,
+				(client.userType as "employee" | "visitor") || "employee",
+				limit,
+				cursor,
+			);
+
+			this.logger.log(
+				`✅ getRoomMessages - Mensajes encontrados: ${result.messages.length}, hasMore: ${result.hasMore}`,
+			);
+
+			// Map messages to frontend format
+			const mappedMessages = result.messages.map((msg) => ({
+				id: msg.id,
+				content: msg.content,
+				roomId: msg.chat_room_id,
+				senderType: msg.sender_employee_id
+					? "employee"
+					: msg.sender_visitor_id
+						? "visitor"
+						: "bot",
+				senderId: msg.sender_employee_id || msg.sender_visitor_id || "",
+				createdAt: msg.created_at,
+				sender: msg.sender_employee || msg.sender_visitor,
+			}));
+
+			return {
+				status: "success",
+				messages: mappedMessages,
+				hasMore: result.hasMore,
+				nextCursor: result.nextCursor,
+			};
+		} catch (error) {
+			this.logger.error(`❌ getRoomMessages error: ${error.message}`);
+			return {
+				status: "error",
+				error: error.message || "Error al obtener mensajes",
+			};
+		}
+	}
+
 	@SubscribeMessage("sendMessage")
 	async handleSendMessage(
 		@ConnectedSocket() client: AuthenticatedSocket,

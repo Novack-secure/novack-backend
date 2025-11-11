@@ -23,3 +23,14 @@ export * from "./refresh-token.entity";
 export * from "./supplier-subscription.entity";
 export * from "./login-attempt.entity";
 export * from "./employee-credentials.entity";
+export * from "./role.entity";
+export * from "./permission.entity";
+
+// Entidades de configuración de usuario
+export * from "./user-preference.entity";
+
+// Entidades de formularios dinámicos
+export * from "./form-template.entity";
+export * from "./form-field.entity";
+export * from "./form-submission.entity";
+export * from "./form-answer.entity";

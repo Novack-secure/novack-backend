@@ -11,7 +11,8 @@ import { Employee } from "./employee.entity";
 import { Visitor } from "./visitor.entity";
 import { Card } from "./card.entity";
 import { SupplierSubscription } from "./supplier-subscription.entity";
-import { Appointment } from "./appointment.entity"; // Import Appointment
+import { Appointment } from "./appointment.entity";
+import { Role } from "./role.entity";
 
 @Entity({ name: "suppliers" })
 export class Supplier {
@@ -75,6 +76,12 @@ export class Supplier {
 		(appointment) => appointment.supplier,
 	)
 	appointments: Appointment[];
+
+	@OneToMany(
+		() => Role,
+		(role) => role.supplier,
+	)
+	roles: Role[];
 
 	// Relación con SupplierSubscription
 	@OneToOne(

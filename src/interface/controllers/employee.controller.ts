@@ -191,7 +191,7 @@ export class EmployeeController {
   }
 
   @Get('supplier/:supplierId')
-  @UseGuards(SupplierAccessGuard)
+  @UseGuards(AuthGuard, SupplierAccessGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Obtener empleados por proveedor',

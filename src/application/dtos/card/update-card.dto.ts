@@ -6,10 +6,23 @@ import {
 	IsOptional,
 	IsString,
 	IsUUID,
+	IsInt,
+	Min,
+	Max,
+	IsEnum,
 } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class UpdateCardDto extends PartialType(CreateCardDto) {
+	@ApiProperty({
+		description: "UUID único de la tarjeta NFC/RFID",
+		example: "04:5A:3B:F2:C1:80:80",
+		required: false,
+	})
+	@IsString()
+	@IsOptional()
+	card_uuid?: string;
+
 	@ApiProperty({
 		description: "Número único de la tarjeta",
 		example: "CARD-001",
@@ -36,6 +49,27 @@ export class UpdateCardDto extends PartialType(CreateCardDto) {
 	@IsBoolean()
 	@IsOptional()
 	is_active?: boolean;
+
+	@ApiProperty({
+		description: "Estado de la tarjeta",
+		example: "active",
+		enum: ["active", "inactive", "lost", "damaged", "assigned", "available"],
+		required: false,
+	})
+	@IsEnum(["active", "inactive", "lost", "damaged", "assigned", "available"])
+	@IsOptional()
+	status?: string;
+
+	@ApiProperty({
+		description: "Porcentaje de batería de la tarjeta",
+		example: 100,
+		required: false,
+	})
+	@IsInt()
+	@Min(0)
+	@Max(100)
+	@IsOptional()
+	battery_percentage?: number;
 
 	@ApiProperty({
 		description: "Fecha de expiración de la tarjeta",
