@@ -1,41 +1,67 @@
-# Crear una copia de respaldo del Dockerfile original
-# Dockerfile.dev.bak contiene la configuración original para desarrollo
+# ============================================
+# Multi-stage Dockerfile for Railway Deployment
+# ============================================
 
-FROM node:20.10.0-alpine3.18
+# ----------------- Build Stage -----------------
+FROM node:20-alpine AS builder
 
-WORKDIR /usr/src/app
-
-# Install dependencies for bcrypt and other native modules
+# Install build dependencies for native modules (bcrypt, sharp, etc.)
 RUN apk add --no-cache python3 make g++ gcc git
 
+# Set working directory
+WORKDIR /app
+
+# Install pnpm globally
+RUN npm install -g pnpm@10.19.0
+
 # Copy package files
-COPY package*.json ./
-COPY pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml ./
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install ALL dependencies (including devDependencies for build)
+RUN pnpm install --frozen-lockfile
 
-# Install all dependencies
-RUN pnpm install
-
-# Explicitly install typeorm and rebuild bcrypt
-RUN pnpm add typeorm@0.3.24 pg twilio 
-RUN cd node_modules/bcrypt && npm rebuild bcrypt --build-from-source
-
-# Copy source code
+# Copy source code and configuration files
 COPY . .
 
-# Build the TypeScript project
+# Build the TypeScript application
 RUN pnpm run build
 
-# Create logs directory
-RUN mkdir -p /usr/src/app/logs
-RUN chmod 777 /usr/src/app/logs
+# ----------------- Production Stage -----------------
+FROM node:20-alpine
 
-# Expose the port (ahora dinámico)
-ARG PORT=4000
-ENV PORT=${PORT}
+# Install runtime dependencies for native modules
+RUN apk add --no-cache python3 make g++ gcc
+
+# Install pnpm globally
+RUN npm install -g pnpm@10.19.0
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install ONLY production dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy built application and necessary files from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chmod 777 /app/logs
+
+# Set environment variable for port (Railway provides this)
+ENV NODE_ENV=production
+ENV PORT=4000
+
+# Expose port
 EXPOSE ${PORT}
 
-# Start the application
-CMD ["pnpm", "start"]
+# Health check for Railway
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:${PORT}/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Start the application in production mode
+CMD ["node", "dist/main"]
