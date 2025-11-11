@@ -53,9 +53,21 @@ COPY --from=builder /app/templates ./templates
 # Create logs directory with proper permissions
 RUN mkdir -p /app/logs && chmod 777 /app/logs
 
-# Set environment variable for port (Railway provides this)
+# Declare build-time arguments from Railway
+ARG ALLOWED_ORIGINS
+ARG JWT_SECRET
+ARG DATABASE_URL
+ARG REDIS_URL
+ARG FRONTEND_URL
+
+# Set environment variables for runtime
 ENV NODE_ENV=production
 ENV PORT=4000
+ENV ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+ENV JWT_SECRET=${JWT_SECRET}
+ENV DATABASE_URL=${DATABASE_URL}
+ENV REDIS_URL=${REDIS_URL}
+ENV FRONTEND_URL=${FRONTEND_URL}
 
 # Expose port
 EXPOSE ${PORT}
