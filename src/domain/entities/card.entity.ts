@@ -1,96 +1,101 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  CreateDateColumn,
-  UpdateDateColumn,
-  OneToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
-import { Supplier } from './supplier.entity';
-import { Visitor } from './visitor.entity';
-import { Employee } from './employee.entity';
+	Entity,
+	PrimaryGeneratedColumn,
+	Column,
+	ManyToOne,
+	CreateDateColumn,
+	UpdateDateColumn,
+	OneToOne,
+	JoinColumn,
+	OneToMany,
+} from "typeorm";
+import { Supplier } from "./supplier.entity";
+import { Visitor } from "./visitor.entity";
+import { Employee } from "./employee.entity";
+import { CardLocation } from "./card-location.entity";
 
-@Entity({ name: 'cards' })
+@Entity({ name: "cards" })
 export class Card {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+	@PrimaryGeneratedColumn("uuid")
+	id: string;
 
-  @Column({ unique: true })
-  card_number: string;
+	@Column({ unique: true })
+	card_number: string;
 
-  @Column({ default: true })
-  is_active: boolean;
+	@Column({ unique: true, nullable: true })
+	card_uuid: string;
 
-  @Column({ nullable: true })
-  issued_at: Date;
+	@Column({ default: true })
+	is_active: boolean;
 
-  @Column({ nullable: true })
-  expires_at: Date;
+	@Column({
+		type: "enum",
+		enum: ["active", "inactive", "lost", "damaged", "assigned", "available"],
+		default: "active",
+		nullable: true
+	})
+	status: string;
 
-  @Column({ type: 'numeric', precision: 9, scale: 6, nullable: true })
-  latitude: number;
+	@Column({ nullable: true })
+	issued_at: Date;
 
-  @Column({ type: 'numeric', precision: 9, scale: 6, nullable: true })
-  longitude: number;
+	@Column({ nullable: true })
+	expires_at: Date;
 
-  @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
-  accuracy: number;
+	@Column({ type: "numeric", precision: 9, scale: 6, nullable: true })
+	latitude: number;
 
-  @Column({ type: 'jsonb', nullable: true })
-  additional_info: Record<string, any>;
+	@Column({ type: "numeric", precision: 9, scale: 6, nullable: true })
+	longitude: number;
 
-  @CreateDateColumn()
-  created_at: Date;
+	@Column({ type: "numeric", precision: 5, scale: 2, nullable: true })
+	accuracy: number;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+	@Column({ type: "integer", nullable: true, default: 100 })
+	battery_percentage: number;
 
-  @ManyToOne(() => Supplier, supplier => supplier.cards)
-  supplier: Supplier;
+	@Column({ type: "jsonb", nullable: true })
+	additional_info: Record<string, any>;
 
-  @Column()
-  supplier_id: string;
+	@CreateDateColumn()
+	created_at: Date;
 
-  @ManyToOne(() => Employee, employee => employee.cards)
-  assigned_to: Employee;
+	@UpdateDateColumn()
+	updated_at: Date;
 
-  @Column({ nullable: true })
-  assigned_to_id: string;
+	@ManyToOne(
+		() => Supplier,
+		(supplier) => supplier.cards,
+	)
+	@JoinColumn({ name: "supplier_id" })
+	supplier: Supplier;
 
-  @OneToOne(() => Visitor, visitor => visitor.card)
-  @JoinColumn()
-  visitor: Visitor;
+	@Column()
+	supplier_id: string;
 
-  @OneToMany(() => CardLocation, location => location.card)
-  locations: CardLocation[];
-}
+	@OneToOne(
+		() => Visitor,
+		(visitor) => visitor.card,
+	)
+	@JoinColumn({ name: "visitor_id" })
+	visitor: Visitor;
 
-@Entity({ name: 'card_locations' })
-export class CardLocation {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+	@Column({ nullable: true })
+	visitor_id: string;
 
-  @Column({ type: 'numeric', precision: 9, scale: 6 })
-  latitude: number;
+	@ManyToOne(
+		() => Employee,
+		(employee) => employee.cards,
+	)
+	@JoinColumn({ name: "employee_id" })
+	employee: Employee;
 
-  @Column({ type: 'numeric', precision: 9, scale: 6 })
-  longitude: number;
+	@Column({ nullable: true })
+	employee_id: string;
 
-  @Column({ type: 'numeric', precision: 5, scale: 2, nullable: true })
-  accuracy: number;
-
-  @Column({ type: 'timestamp' })
-  timestamp: Date;
-
-  @CreateDateColumn()
-  created_at: Date;
-
-  @ManyToOne(() => Card, card => card.locations)
-  card: Card;
-
-  @Column()
-  card_id: string;
+	@OneToMany(
+		() => CardLocation,
+		(location) => location.card,
+	)
+	locations: CardLocation[];
 }

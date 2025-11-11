@@ -1,150 +1,191 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Put,
-  Param,
-  Delete,
-  UseGuards,
-  BadRequestException,
-  Query,
-} from '@nestjs/common';
-import { CardService } from '../../application/services/card.service';
+	Controller,
+	Get,
+	Post,
+	Body,
+	Put,
+	Param,
+	Delete,
+	UseGuards,
+	BadRequestException,
+	Query,
+} from "@nestjs/common";
+import { CardService } from "../../application/services/card.service";
 import {
-  CreateCardDto,
-  UpdateCardDto,
-  CardLocationDto,
-} from '../../application/dtos/card';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { AuthGuard } from '../../application/guards/auth.guard';
-import { CardSchedulerService } from '../../application/services/card-scheduler.service';
+	CreateCardDto,
+	UpdateCardDto,
+	CardLocationDto,
+} from "../../application/dtos/card";
+import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { AuthGuard } from "../../application/guards/auth.guard";
+import { CardSchedulerService } from "../../application/services/card-scheduler.service";
 
-@ApiTags('cards')
-@Controller('cards')
-@UseGuards(AuthGuard)
+@ApiTags("cards")
+@Controller("cards")
+// @UseGuards(AuthGuard)
 export class CardController {
-  constructor(
-    private readonly cardService: CardService,
-    private readonly cardSchedulerService: CardSchedulerService,
-  ) {}
+	constructor(
+		private readonly cardService: CardService,
+		private readonly cardSchedulerService: CardSchedulerService,
+	) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Crear una nueva tarjeta' })
-  @ApiResponse({
-    status: 201,
-    description: 'La tarjeta ha sido creada exitosamente',
-  })
-  create(@Body() createCardDto: CreateCardDto) {
-    return this.cardService.create(createCardDto);
-  }
+	@Post()
+	@ApiOperation({ summary: "Crear una nueva tarjeta" })
+	@ApiResponse({
+		status: 201,
+		description: "La tarjeta ha sido creada exitosamente",
+	})
+	create(@Body() createCardDto: CreateCardDto) {
+		return this.cardService.create(createCardDto);
+	}
 
-  @Get()
-  @ApiOperation({ summary: 'Obtener todas las tarjetas' })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de todas las tarjetas',
-  })
-  findAll() {
-    return this.cardService.findAll();
-  }
+	@Get()
+	@ApiOperation({ summary: "Obtener todas las tarjetas" })
+	@ApiResponse({
+		status: 200,
+		description: "Lista de todas las tarjetas",
+	})
+	findAll() {
+		return this.cardService.findAll();
+	}
 
-  @Get('available')
-  @ApiOperation({ summary: 'Obtener todas las tarjetas disponibles' })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de tarjetas disponibles',
-  })
-  findAvailable() {
-    return this.cardService.findAvailableCards();
-  }
+	@Get("available")
+	@ApiOperation({ summary: "Obtener todas las tarjetas disponibles" })
+	@ApiResponse({
+		status: 200,
+		description: "Lista de tarjetas disponibles",
+	})
+	findAvailable() {
+		return this.cardService.findAvailableCards();
+	}
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Obtener una tarjeta por ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'La tarjeta ha sido encontrada',
-  })
-  findOne(@Param('id') id: string) {
-    return this.cardService.findOne(id);
-  }
+	@Get("supplier/:supplierId")
+	@ApiOperation({ summary: "Obtener todas las tarjetas de un supplier" })
+	@ApiResponse({
+		status: 200,
+		description: "Lista de tarjetas del supplier",
+	})
+	findBySupplier(@Param("supplierId") supplierId: string) {
+		return this.cardService.findBySupplier(supplierId);
+	}
 
-  @Get(':id/locations')
-  @UseGuards(AuthGuard)
-  findLocations(@Param('id') id: string) {
-    return this.cardService.findLocationHistory(id);
-  }
+	@Get("stats")
+	@ApiOperation({ summary: "Obtener estadísticas de tarjetas" })
+	@ApiResponse({
+		status: 200,
+		description: "Estadísticas de tarjetas",
+	})
+	async getStats(@Query("supplierId") supplierId?: string) {
+		const cards = supplierId
+			? await this.cardService.findBySupplier(supplierId)
+			: await this.cardService.findAll();
 
-  @Put(':id')
-  @ApiOperation({ summary: 'Actualizar una tarjeta' })
-  @ApiResponse({
-    status: 200,
-    description: 'La tarjeta ha sido actualizada',
-  })
-  update(@Param('id') id: string, @Body() updateCardDto: UpdateCardDto) {
-    return this.cardService.update(id, updateCardDto);
-  }
+		const total = cards.length;
+		const active = cards.filter((c) => c.status === "active" || c.status === "assigned").length;
+		const inactive = cards.filter((c) => c.status === "inactive").length;
+		const lost = cards.filter((c) => c.status === "lost").length;
+		const damaged = cards.filter((c) => c.status === "damaged").length;
 
-  @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar una tarjeta' })
-  @ApiResponse({
-    status: 200,
-    description: 'La tarjeta ha sido eliminada',
-  })
-  remove(@Param('id') id: string) {
-    return this.cardService.remove(id);
-  }
+		const cardsWithBattery = cards.filter((c) => c.battery_percentage !== null && c.battery_percentage !== undefined);
+		const averageBattery = cardsWithBattery.length > 0
+			? cardsWithBattery.reduce((sum, c) => sum + (c.battery_percentage || 0), 0) / cardsWithBattery.length
+			: 0;
 
-  @Post(':card_id/assign/:visitor_id')
-  @ApiOperation({ summary: 'Asignar una tarjeta a un visitante' })
-  @ApiResponse({
-    status: 200,
-    description: 'La tarjeta ha sido asignada al visitante',
-  })
-  assignToVisitor(
-    @Param('card_id') card_id: string,
-    @Param('visitor_id') visitor_id: string,
-  ) {
-    return this.cardService.assignToVisitor(card_id, visitor_id);
-  }
+		return {
+			total,
+			active,
+			inactive,
+			lost,
+			damaged,
+			averageBattery,
+		};
+	}
 
-  @Post(':id/unassign')
-  @ApiOperation({ summary: 'Desasignar una tarjeta de un visitante' })
-  @ApiResponse({
-    status: 200,
-    description: 'La tarjeta ha sido desasignada del visitante',
-  })
-  unassignFromVisitor(@Param('id') id: string) {
-    return this.cardService.unassignFromVisitor(id);
-  }
+	@Get(":id")
+	@ApiOperation({ summary: "Obtener una tarjeta por ID" })
+	@ApiResponse({
+		status: 200,
+		description: "La tarjeta ha sido encontrada",
+	})
+	findOne(@Param("id") id: string) {
+		return this.cardService.findOne(id);
+	}
 
-  @Post(':id/location')
-  @UseGuards(AuthGuard)
-  recordLocation(
-    @Param('id') id: string,
-    @Body() locationDto: CardLocationDto,
-  ) {
-    return this.cardService.recordLocation(
-      id,
-      locationDto.latitude,
-      locationDto.longitude,
-      locationDto.accuracy,
-    );
-  }
+	@Get(":id/locations")
+	@UseGuards(AuthGuard)
+	findLocations(@Param("id") id: string) {
+		return this.cardService.findLocationHistory(id);
+	}
 
-  @Get('nearby')
-  @UseGuards(AuthGuard)
-  findNearbyCards(
-    @Query('lat') latitude: number,
-    @Query('lng') longitude: number,
-    @Query('radius') radius = 100
-  ) {
-    return this.cardService.getNearbyCards(+latitude, +longitude, +radius);
-  }
+	@Put(":id")
+	@ApiOperation({ summary: "Actualizar una tarjeta" })
+	@ApiResponse({
+		status: 200,
+		description: "La tarjeta ha sido actualizada",
+	})
+	update(@Param("id") id: string, @Body() updateCardDto: UpdateCardDto) {
+		return this.cardService.update(id, updateCardDto);
+	}
 
-  @Get(':id/last-location')
-  @UseGuards(AuthGuard)
-  getLastLocation(@Param('id') id: string) {
-    return this.cardService.getLastLocation(id);
-  }
+	@Delete(":id")
+	@ApiOperation({ summary: "Eliminar una tarjeta" })
+	@ApiResponse({
+		status: 200,
+		description: "La tarjeta ha sido eliminada",
+	})
+	remove(@Param("id") id: string) {
+		return this.cardService.remove(id);
+	}
+
+	@Post(":card_id/assign/:visitor_id")
+	@ApiOperation({ summary: "Asignar una tarjeta a un visitante" })
+	@ApiResponse({
+		status: 200,
+		description: "La tarjeta ha sido asignada al visitante",
+	})
+	assignToVisitor(
+		@Param("card_id") card_id: string,
+		@Param("visitor_id") visitor_id: string,
+	) {
+		return this.cardService.assignToVisitor(card_id, visitor_id);
+	}
+
+	@Post(":id/unassign")
+	@ApiOperation({ summary: "Desasignar una tarjeta de un visitante" })
+	@ApiResponse({
+		status: 200,
+		description: "La tarjeta ha sido desasignada del visitante",
+	})
+	unassignFromVisitor(@Param("id") id: string) {
+		return this.cardService.unassignFromVisitor(id);
+	}
+
+	@Post(":id/location")
+	recordLocation(
+		@Param("id") id: string,
+		@Body() locationDto: CardLocationDto,
+	) {
+		return this.cardService.recordLocation(
+			id,
+			locationDto.latitude,
+			locationDto.longitude,
+			locationDto.accuracy,
+		);
+	}
+
+	@Get("nearby")
+	@UseGuards(AuthGuard)
+	findNearbyCards(
+		@Query("lat") latitude: number,
+		@Query("lng") longitude: number,
+		@Query("radius") radius = 100,
+	) {
+		return this.cardService.getNearbyCards(+latitude, +longitude, +radius);
+	}
+
+	@Get(":id/last-location")
+	@UseGuards(AuthGuard)
+	getLastLocation(@Param("id") id: string) {
+		return this.cardService.getLastLocation(id);
+	}
 }

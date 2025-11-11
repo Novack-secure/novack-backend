@@ -1,11 +1,55 @@
+# Dependencies
 node_modules
 npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Git
 .git
 .gitignore
+.github
+
+# Environment
 .env
-coverage
 .env.*
-README.md
+!.env.example
+
+# Coverage & Tests
+coverage
+*.test.ts
+*.spec.ts
+test/
+
+# Docker files
 .dockerignore
 Dockerfile
-docker-compose.yml
+Dockerfile.*
+docker-compose*.yml
+
+# Documentation
+README.md
+*.md
+docs/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Build output (will be rebuilt in container)
+dist/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.bak
+tmp/
+temp/

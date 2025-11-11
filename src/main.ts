@@ -1,120 +1,124 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { Logger, HttpStatus } from '@nestjs/common'; // HttpStatus might be used by the filter
-import { ConfigService } from '@nestjs/config';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { Logger, HttpStatus, LogLevel } from "@nestjs/common"; // HttpStatus might be used by the filter
+import { ConfigService } from "@nestjs/config";
 // import { v4 as uuidv4 } from 'uuid'; // No longer directly used here for startupCorrelationId
-import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import helmet from 'helmet';
-import * as cookieParser from 'cookie-parser';
-import { StructuredLoggerService } from './infrastructure/logging/structured-logger.service';
-import { GlobalExceptionFilter } from './infrastructure/filters/global-exception.filter';
+import { ValidationPipe } from "@nestjs/common";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
+import { StructuredLoggerService } from "./infrastructure/logging/structured-logger.service";
+import { GlobalExceptionFilter } from "./infrastructure/filters/global-exception.filter";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    bufferLogs: true, // Buffer logs until a logger is attached
-  });
+	// Configurar nivel de logs según entorno
+	const isSimpleLogging = process.env.SIMPLE_LOGGING === "true";
+	const logLevels: LogLevel[] = isSimpleLogging
+		? ["error", "warn"] // Solo mostrar errores y advertencias en modo simple
+		: ["log", "error", "warn", "debug", "verbose"]; // Logs completos
 
-  // Use the app's StructuredLoggerService for consistency, using resolve() for TRANSIENT scoped providers
-  // For the GlobalExceptionFilter, we need an instance of StructuredLoggerService.
-  // Since LoggingModule is Global, StructuredLoggerService should be available.
-  const structuredLoggerService = await app.resolve(StructuredLoggerService);
+	const app = await NestFactory.create(AppModule, {
+		bufferLogs: true, // Buffer logs until a logger is attached
+		logger: isSimpleLogging ? logLevels : undefined, // Usar logger básico si SIMPLE_LOGGING=true
+	});
 
-  // app.useLogger(Logger); // Using NestJS's default Logger token, which should be our StructuredLoggerService
-  // It's better to pass the specific instance if we have it, especially for app-level logging.
-  app.useLogger(structuredLoggerService);
-  app.flushLogs(); // Flush buffered logs using the newly set logger
+	// Aplicar el logger estructurado solo si no estamos en modo simple
+	if (!isSimpleLogging) {
+		const structuredLoggerService = await app.resolve(StructuredLoggerService);
+		app.useLogger(structuredLoggerService);
+	}
 
-  // Register the GlobalExceptionFilter
-  // const structuredLoggerService = app.get(StructuredLoggerService); // Already got above
-  app.useGlobalFilters(new GlobalExceptionFilter(structuredLoggerService));
+	app.flushLogs(); // Flush buffered logs using the newly set logger
 
-  const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT', 4000); // Use config service for port
+	// Register the GlobalExceptionFilter solo si no estamos en modo simple
+	if (!isSimpleLogging) {
+		const structuredLoggerService = await app.resolve(StructuredLoggerService);
+		app.useGlobalFilters(new GlobalExceptionFilter(structuredLoggerService));
+	} else {
+		// Usar un filtro global básico para los errores si estamos en modo simple
+		app.useGlobalFilters(
+			new GlobalExceptionFilter(new Logger("GlobalExceptionFilter")),
+		);
+	}
 
-  // Use the structuredLoggerService for bootstrap logging
-  structuredLoggerService.log(`Aplicación iniciando en puerto ${port}`, 'Bootstrap', {
-    port,
-    nodeEnv: process.env.NODE_ENV,
-  });
+	const configService = app.get(ConfigService);
+	const port = configService.get<number>("PORT", 4000); // Usar el puerto desde las variables de entorno
 
-  const isProduction = process.env.NODE_ENV === 'production';
+	// Usar el logger adecuado según el modo
+	const logger = isSimpleLogging
+		? new Logger("Bootstrap")
+		: await app.resolve(StructuredLoggerService);
+	logger.log(`Aplicación iniciando en puerto ${port}`);
 
-  // Configurar cookie parser para manejar cookies
-  app.use(
-    cookieParser(process.env.COOKIE_SECRET || 'secret_cookie_for_dev_only'),
-  );
+	const isProduction = process.env.NODE_ENV === "production";
 
-  // Aplicar helmet para seguridad de cabeceras HTTP
-  app.use(helmet());
+	// Configurar cookie parser para manejar cookies
+	app.use(
+		cookieParser(process.env.COOKIE_SECRET || "secret_cookie_for_dev_only"),
+	);
 
-  // Configurar CSP para prevenir XSS
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
-          connectSrc: ["'self'"],
-        },
-      },
-    }),
-  );
+	// Aplicar helmet para seguridad de cabeceras HTTP
+	app.use(helmet());
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+	// Configurar CSP para prevenir XSS
+	app.use(
+		helmet({
+			contentSecurityPolicy: {
+				directives: {
+					defaultSrc: ["'self'"],
+					scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+					styleSrc: ["'self'", "'unsafe-inline'"],
+					imgSrc: ["'self'", "data:", "https:"],
+					connectSrc: ["'self'"],
+				},
+			},
+		}),
+	);
 
-  if (!isProduction) {
-    const config = new DocumentBuilder()
-      .setTitle('Novack API')
-      .setDescription('API REST para la aplicación de Novack')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api', app, document);
-  }
+	app.useGlobalPipes(
+		new ValidationPipe({
+			whitelist: true,
+			forbidNonWhitelisted: true,
+			transform: true,
+		}),
+	);
 
-  app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-      'http://localhost:3000',
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'Accept',
-      'X-CSRF-TOKEN',
-      'X-XSRF-TOKEN',
-    ],
-    exposedHeaders: ['Authorization', 'XSRF-TOKEN'],
-    credentials: true,
-    maxAge: 3600,
-  });
+	if (!isProduction) {
+		const config = new DocumentBuilder()
+			.setTitle("Novack API")
+			.setDescription("API REST para la aplicación de Novack")
+			.setVersion("1.0")
+			.addBearerAuth()
+			.build();
+		const document = SwaggerModule.createDocument(app as any, config);
+		SwaggerModule.setup("api", app as any, document);
+	}
 
-  await app.listen(port);
+	app.enableCors({
+		origin: process.env.ALLOWED_ORIGINS?.split(",") || [
+			"http://localhost:3000",
+		],
+		methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+		allowedHeaders: [
+			"Content-Type",
+			"Authorization",
+			"Accept",
+			"X-CSRF-TOKEN",
+			"X-XSRF-TOKEN",
+		],
+		exposedHeaders: ["Authorization", "XSRF-TOKEN"],
+		credentials: true,
+		maxAge: 3600,
+	});
 
-  structuredLoggerService.log(
-    `Aplicación iniciada correctamente en puerto ${port}`,
-    'Bootstrap',
-    {
-      startupTime: new Date().toISOString(),
-      // Ensure swaggerUrl is correctly formed if port comes from config
-      swaggerUrl: !isProduction ? `http://localhost:${port}/api` : undefined,
-    },
-  );
+	await app.listen(port);
+
+	logger.log(`🚀 Novack API is up and running on port ${port}`);
 }
 
 bootstrap().catch((err) => {
-  // Use console.error for bootstrap errors as logger might not be fully initialized
-  // or if the error happens before logger setup.
-  console.error('Error crítico durante el inicio de la aplicación:', err);
-  process.exit(1);
+	// Use console.error for bootstrap errors as logger might not be fully initialized
+	// or if the error happens before logger setup.
+	console.error("Error crítico durante el inicio de la aplicación:", err);
+	process.exit(1);
 });

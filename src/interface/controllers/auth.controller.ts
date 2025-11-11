@@ -1,99 +1,170 @@
-import { Controller, Post, Body, UnauthorizedException, Req, HttpStatus, HttpCode } from '@nestjs/common'; // Res removed as not used
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiProperty } from '@nestjs/swagger'; // ApiProperty import for inline DTOs if needed, but we'll use external
-// AuthenticationResult type import removed, will use AuthenticationResultDto
-import { AuthenticateEmployeeUseCase, AuthenticateEmployeeDto } from '../../application/use-cases/auth/authenticate-employee.use-case';
-import { Public } from '../../application/decorators/public.decorator';
-import { Request } from 'express'; // Response removed as not used
-import { AuthService } from '../../application/services/auth.service';
-// Import the DTOs from their actual location
-import { RefreshTokenDto } from '../../application/dtos/auth/refresh-token.dto';
-import { LogoutDto } from '../../application/dtos/auth/logout.dto';
-import { LoginSmsVerifyDto } from '../../application/dtos/auth/login.dto'; // Import new DTO
-import { AuthenticationResultDto } from '../../application/dtos/auth/authentication-result.dto'; // Import DTO
+import {
+	Controller,
+	Post,
+	Body,
+	UnauthorizedException,
+	Req,
+	HttpStatus,
+	HttpCode,
+} from "@nestjs/common";
+import {
+	ApiTags,
+	ApiOperation,
+	ApiResponse,
+	ApiBody,
+} from "@nestjs/swagger";
+import {
+	AuthenticateEmployeeUseCase,
+	AuthenticateEmployeeDto,
+} from "../../application/use-cases/auth/authenticate-employee.use-case";
+import { Public } from "../../application/decorators/public.decorator";
+import { Request } from "express";
+import { AuthService } from "../../application/services/auth.service";
+import { RefreshTokenDto } from "../../application/dtos/auth/refresh-token.dto";
+import { LogoutDto } from "../../application/dtos/auth/logout.dto";
+import { LoginSmsVerifyDto } from "../../application/dtos/auth/login.dto";
+import { AuthenticationResultDto } from "../../application/dtos/auth/authentication-result.dto";
+import { GoogleAuthDto } from "../../application/dtos/auth/google-auth.dto";
 
-// Define a more complex response type for login that can include OTP requirement
-const LoginResponseSchema = {
-  oneOf: [
-    { $ref: `#/components/schemas/${AuthenticationResultDto.name}` }, // Use DTO name for ref
-    {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'SMS OTP verification required.' },
-        smsOtpRequired: { type: 'boolean', example: true },
-        userId: { type: 'string', example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' }
-      }
-    }
-  ]
-};
-
-@ApiTags('Autenticación')
-@Controller('auth')
+@ApiTags("Autenticación")
+@Controller("auth")
 export class AuthController {
-  // Ensure AuthenticationResult is defined somewhere accessible for Swagger, e.g. in a DTO file or as a class.
-  // For now, assuming it's defined in the use-case file and Swagger can pick it up or it's manually described.
-  constructor(
-    private readonly authenticateEmployeeUseCase: AuthenticateEmployeeUseCase,
-    private readonly authService: AuthService, // Inject AuthService for refresh/logout
-  ) {}
+	constructor(
+		private readonly authenticateEmployeeUseCase: AuthenticateEmployeeUseCase,
+		private readonly authService: AuthService,
+	) {}
 
-  @Post('login')
-  @Public()
-  @ApiOperation({ summary: 'Autenticar empleado. Puede devolver tokens o requerir verificación OTP por SMS.' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Autenticación exitosa (tokens emitidos) o se requiere OTP por SMS.',
-    schema: LoginResponseSchema, // Use the combined schema
-  })
-  @ApiResponse({ status: 401, description: 'Credenciales inválidas o email no verificado' })
-  @ApiResponse({ status: 500, description: 'Error interno (ej. fallo al enviar SMS OTP)' })
-  async login(@Body() credentials: AuthenticateEmployeeDto, @Req() req: Request) {
-    try {
-      // Pass request object to use case
-      return await this.authenticateEmployeeUseCase.execute(credentials, req);
-    } catch (error) {
-      // Use case now re-throws HttpExceptions from AuthService
-      throw error;
-    }
-  }
+	@Post("login")
+	@Public()
+	@HttpCode(HttpStatus.OK)
+	@ApiOperation({
+		summary: "Autenticación de empleado",
+		description: "Autentica un empleado con email y contraseña",
+	})
+	@ApiBody({ description: "Credenciales de autenticación" })
+	@ApiResponse({
+		status: 200,
+		description: "Autenticación exitosa",
+		type: AuthenticationResultDto,
+	})
+	@ApiResponse({
+		status: 401,
+		description: "Credenciales inválidas",
+	})
+	@ApiResponse({
+		status: 400,
+		description: "Datos de entrada inválidos",
+	})
+	async login(
+		@Body() authenticateDto: AuthenticateEmployeeDto,
+		@Req() req: Request,
+	): Promise<any> {
+		return this.authenticateEmployeeUseCase.execute(authenticateDto, req);
+	}
 
-  @Post('refresh-token')
-  @Public()
-  @ApiOperation({ summary: 'Refrescar access token usando un refresh token' })
-  @ApiBody({ type: RefreshTokenDto }) // Use the imported DTO
-  @ApiResponse({ status: 200, description: 'Token refrescado exitosamente', type: AuthenticationResultDto })
-  @ApiResponse({ status: 401, description: 'Refresh token inválido o expirado' })
-  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto, @Req() req: Request) {
-    // Validation for refresh_token presence is now handled by ValidationPipe if DTO uses class-validator
-    try {
-      return await this.authService.refreshToken(refreshTokenDto.refresh_token, req);
-    } catch (error) {
-      throw new UnauthorizedException(error.message || 'Error al refrescar el token');
-    }
-  }
+	@Post("refresh")
+	@Public()
+	@HttpCode(HttpStatus.OK)
+	@ApiOperation({
+		summary: "Renovar token de acceso",
+		description: "Renueva el token de acceso usando el refresh token",
+	})
+	@ApiBody({ type: RefreshTokenDto })
+	@ApiResponse({
+		status: 200,
+		description: "Token renovado exitosamente",
+		type: AuthenticationResultDto,
+	})
+	@ApiResponse({
+		status: 401,
+		description: "Refresh token inválido o expirado",
+	})
+	async refreshToken(
+		@Body() refreshTokenDto: RefreshTokenDto,
+	): Promise<AuthenticationResultDto> {
+		return await this.authService.refreshToken(
+			refreshTokenDto.refresh_token,
+		);
+	}
 
-  @Post('logout')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Invalidar refresh token (logout)' })
-  @ApiBody({ type: LogoutDto }) // Use the imported DTO
-  @ApiResponse({ status: 200, description: 'Logout exitoso, refresh token invalidado' })
-  // No specific 400 for missing token if class-validator handles it.
-  // AuthService also has a check.
-  async logout(@Body() logoutDto: LogoutDto) {
-    // Validation for refresh_token presence is now handled by ValidationPipe
-    return await this.authService.logout(logoutDto.refresh_token);
-  }
+	@Post("logout")
+	@Public()
+	@HttpCode(HttpStatus.OK)
+	@ApiOperation({
+		summary: "Cerrar sesión",
+		description: "Invalida el refresh token y cierra la sesión del usuario",
+	})
+	@ApiBody({ type: LogoutDto })
+	@ApiResponse({
+		status: 200,
+		description: "Sesión cerrada exitosamente",
+		schema: {
+			example: {
+				message: "Logout successful",
+			},
+		},
+	})
+	async logout(@Body() logoutDto: LogoutDto) {
+		return await this.authService.logout(logoutDto.refresh_token);
+	}
 
-  @Post('login/sms-verify')
-  @Public() // This endpoint must be public as the user is not fully logged in yet
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verificar OTP por SMS y completar el inicio de sesión' })
-  @ApiBody({ type: LoginSmsVerifyDto })
-  // The response here should be the AuthenticationResult upon successful OTP verification
-  @ApiResponse({ status: 200, description: 'Inicio de sesión exitoso después de la verificación del OTP por SMS.', type: AuthenticationResultDto })
-  @ApiResponse({ status: 401, description: 'No autorizado (ej. OTP inválido, OTP expirado, usuario no encontrado)' })
-  async loginSmsVerify(@Body() loginSmsVerifyDto: LoginSmsVerifyDto, @Req() req: Request): Promise<AuthenticationResultDto> {
-    // Pass the original request object if your TokenService needs it for generating tokens
-    // The return type of authService.verifySmsOtpAndLogin should also align with AuthenticationResultDto
-    return this.authService.verifySmsOtpAndLogin(loginSmsVerifyDto.userId, loginSmsVerifyDto.otp, req);
-  }
+	@Post("verify-sms")
+	@Public()
+	@HttpCode(HttpStatus.OK)
+	@ApiOperation({
+		summary: "Verificar SMS OTP",
+		description: "Verifica el código SMS OTP y completa el login",
+	})
+	@ApiBody({ type: LoginSmsVerifyDto })
+	@ApiResponse({
+		status: 200,
+		description: "SMS OTP verificado exitosamente",
+		type: AuthenticationResultDto,
+	})
+	@ApiResponse({
+		status: 400,
+		description: "Código SMS inválido o expirado",
+	})
+	@ApiResponse({
+		status: 401,
+		description: "Credenciales inválidas",
+	})
+	async verifySmsOtp(
+		@Body() loginSmsVerifyDto: LoginSmsVerifyDto,
+		@Req() req: Request,
+	): Promise<AuthenticationResultDto> {
+		return this.authService.verifySmsOtpAndLogin(
+			loginSmsVerifyDto.email,
+			loginSmsVerifyDto.sms_otp_code,
+			req,
+		);
+	}
+
+	@Post("google")
+	@Public()
+	@HttpCode(HttpStatus.OK)
+	@ApiOperation({
+		summary: "Autenticación con Google OAuth",
+		description: "Autentica o registra un usuario usando Google OAuth",
+	})
+	@ApiBody({ type: GoogleAuthDto })
+	@ApiResponse({
+		status: 200,
+		description: "Autenticación exitosa con Google",
+		type: AuthenticationResultDto,
+	})
+	@ApiResponse({
+		status: 400,
+		description: "Datos de Google inválidos",
+	})
+	@ApiResponse({
+		status: 500,
+		description: "Error interno del servidor",
+	})
+	async googleAuth(
+		@Body() googleAuthDto: GoogleAuthDto,
+		@Req() req: Request,
+	): Promise<any> {
+		return this.authService.googleAuth(googleAuthDto, req);
+	}
 }
