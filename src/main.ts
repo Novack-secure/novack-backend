@@ -55,17 +55,61 @@ async function bootstrap() {
 
 	const isProduction = process.env.NODE_ENV === "production";
 
+	// ============================================
+	// IMPORTANTE: CORS DEBE IR PRIMERO
+	// ============================================
+	const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",").map(origin => origin.trim()) || [
+		"http://localhost:3000",
+	];
+	
+	logger.log(`🔒 CORS configurado para: ${allowedOrigins.join(", ")}`);
+	
+	// Configurar CORS ANTES de cualquier otro middleware
+	app.enableCors({
+		origin: (origin, callback) => {
+			// Permitir peticiones sin origin (servidor a servidor, curl, etc.)
+			if (!origin) {
+				logger.log(`✅ CORS: Permitiendo petición sin origin`);
+				return callback(null, true);
+			}
+			
+			// Verificar si el origin está permitido
+			if (allowedOrigins.includes(origin)) {
+				logger.log(`✅ CORS: Permitiendo origin: ${origin}`);
+				callback(null, true);
+			} else {
+				logger.warn(`🚫 CORS: Bloqueando origin no permitido: ${origin}`);
+				callback(new Error(`Origin ${origin} no permitido por CORS`));
+			}
+		},
+		methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+		allowedHeaders: [
+			"Content-Type",
+			"Authorization",
+			"Accept",
+			"X-CSRF-TOKEN",
+			"X-XSRF-TOKEN",
+		],
+		exposedHeaders: ["Authorization", "XSRF-TOKEN"],
+		credentials: true,
+		maxAge: 3600,
+		preflightContinue: false,
+		optionsSuccessStatus: 204,
+	});
+
+	// ============================================
+	// OTROS MIDDLEWARES (DESPUÉS DE CORS)
+	// ============================================
+
 	// Configurar cookie parser para manejar cookies
 	app.use(
 		cookieParser(process.env.COOKIE_SECRET || "secret_cookie_for_dev_only"),
 	);
 
-	// Aplicar helmet para seguridad de cabeceras HTTP
-	app.use(helmet());
-
-	// Configurar CSP para prevenir XSS
+	// Aplicar helmet PERO sin que interfiera con CORS
 	app.use(
 		helmet({
+			crossOriginResourcePolicy: false, // Desactivar para no interferir con CORS
 			contentSecurityPolicy: {
 				directives: {
 					defaultSrc: ["'self'"],
@@ -96,44 +140,6 @@ async function bootstrap() {
 		const document = SwaggerModule.createDocument(app as any, config);
 		SwaggerModule.setup("api", app as any, document);
 	}
-
-	// Configurar CORS - Solo permitir tu frontend
-	const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",").map(origin => origin.trim()) || [
-		"http://localhost:3000",
-	];
-	
-	logger.log(`🔒 CORS configurado para: ${allowedOrigins.join(", ")}`);
-	
-	// CORS debe ir ANTES de cualquier middleware
-	app.enableCors({
-		origin: (origin, callback) => {
-			// Permitir peticiones sin origin (servidor a servidor, curl, etc.)
-			if (!origin) {
-				return callback(null, true);
-			}
-			
-			// Verificar si el origin está permitido
-			if (allowedOrigins.includes(origin)) {
-				callback(null, true);
-			} else {
-				logger.warn(`🚫 CORS bloqueó origen no permitido: ${origin}`);
-				callback(new Error(`Origin ${origin} no permitido por CORS`));
-			}
-		},
-		methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-		allowedHeaders: [
-			"Content-Type",
-			"Authorization",
-			"Accept",
-			"X-CSRF-TOKEN",
-			"X-XSRF-TOKEN",
-		],
-		exposedHeaders: ["Authorization", "XSRF-TOKEN"],
-		credentials: true,
-		maxAge: 3600,
-		preflightContinue: false,
-		optionsSuccessStatus: 204,
-	});
 
 	await app.listen(port);
 
