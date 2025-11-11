@@ -81,6 +81,7 @@
 				"socket.io-client": "^4.8.1",
 				"swagger-ui-express": "^5.0.1",
 				"twilio": "^4.23.0",
+				"typeorm": "^0.3.27",
 				"uuid": "^9.0.1"
 		},
 		"devDependencies": {
@@ -117,7 +118,6 @@
 				"ts-loader": "^9.5.4",
 				"ts-node": "^10.9.2",
 				"tsconfig-paths": "^4.2.0",
-				"typeorm": "^0.3.27",
 				"typescript": "^5.9.3"
 		}
 }
