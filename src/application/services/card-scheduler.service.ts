@@ -43,9 +43,12 @@ export class CardSchedulerService {
 			relations: ["visitor", "visitor.card"],
 		});
 
-		this.logger.log(
-			`Encontradas ${upcomingAppointments.length} citas próximas`,
-		);
+		// Solo mostrar en debug, no en producción
+		if (upcomingAppointments.length > 0) {
+			this.logger.debug(
+				`Encontradas ${upcomingAppointments.length} citas próximas`,
+			);
+		}
 
 		// Procesar cada cita
 		for (const appointment of upcomingAppointments) {
@@ -97,9 +100,12 @@ export class CardSchedulerService {
 			relations: ["visitor", "visitor.card"],
 		});
 
-		this.logger.log(
-			`Encontradas ${completedAppointments.length} citas finalizadas`,
-		);
+		// Solo mostrar en debug, no en producción
+		if (completedAppointments.length > 0) {
+			this.logger.debug(
+				`Encontradas ${completedAppointments.length} citas finalizadas`,
+			);
+		}
 
 		// Procesar cada cita
 		for (const appointment of completedAppointments) {
