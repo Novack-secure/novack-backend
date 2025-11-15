@@ -275,4 +275,26 @@ export class AppointmentService {
 
 		return { archived: appointmentsToArchive.length };
 	}
+
+	async archiveAppointment(id: string): Promise<Appointment> {
+		const appointment = await this.appointmentRepository.findOne({ where: { id } });
+		
+		if (!appointment) {
+			throw new NotFoundException(`Cita con ID "${id}" no encontrada`);
+		}
+
+		appointment.archived = true;
+		return this.appointmentRepository.save(appointment);
+	}
+
+	async unarchiveAppointment(id: string): Promise<Appointment> {
+		const appointment = await this.appointmentRepository.findOne({ where: { id } });
+		
+		if (!appointment) {
+			throw new NotFoundException(`Cita con ID "${id}" no encontrada`);
+		}
+
+		appointment.archived = false;
+		return this.appointmentRepository.save(appointment);
+	}
 }

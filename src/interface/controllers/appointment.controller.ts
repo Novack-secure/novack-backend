@@ -136,4 +136,20 @@ export class AppointmentController {
 	async archiveOld(@Query("supplierId") supplierId?: string) {
 		return this.appointmentService.archiveOldAppointments(supplierId);
 	}
+
+	@Patch(":id/archive")
+	@ApiOperation({ summary: "Archivar una cita específica" })
+	@ApiResponse({ status: 200, description: "Cita archivada exitosamente" })
+	@ApiResponse({ status: 404, description: "Cita no encontrada" })
+	async archiveAppointment(@Param("id") id: string) {
+		return this.appointmentService.archiveAppointment(id);
+	}
+
+	@Patch(":id/unarchive")
+	@ApiOperation({ summary: "Desarchivar una cita" })
+	@ApiResponse({ status: 200, description: "Cita desarchivada exitosamente" })
+	@ApiResponse({ status: 404, description: "Cita no encontrada" })
+	async unarchiveAppointment(@Param("id") id: string) {
+		return this.appointmentService.unarchiveAppointment(id);
+	}
 }
